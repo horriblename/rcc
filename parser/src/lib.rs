@@ -45,7 +45,11 @@ fn parse_function<'a, E: ParseError<ParserIn<'a>>>(
         tuple((
             parse_identifier,
             parse_identifier,
-            parse_arg_list,
+            delimited(
+                one(Token::LParen("(")),
+                parse_arg_list,
+                one(Token::RParen(")")),
+            ),
             parse_block,
         )),
         |(return_type, name, args, body)| ast::FnDef {
