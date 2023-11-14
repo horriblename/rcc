@@ -2,10 +2,11 @@ use lexer::{
     lex_program,
     token::{self},
 };
+use nom::error::VerboseError;
 
 use crate::{
     ast::{self, Block, FnArg, FnDef, IntLiteral, Program, ReturnStmt, Stmt, TopLevel},
-    parse_program,
+    parse_program, ParserIn,
 };
 
 macro_rules! ident_ast {
@@ -50,7 +51,7 @@ fn test_parse_program() {
         },
     };
 
-    let (_, got) = parse_program(&tokens).unwrap();
+    let (_, got) = parse_program::<VerboseError<ParserIn>>(&tokens).unwrap();
 
     assert_eq!(got, expect);
 }
