@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
     character::complete::{multispace0, satisfy},
-    combinator::{map, peek, recognize, value},
+    combinator::{all_consuming, map, peek, recognize, value},
     multi::many0,
     sequence::{delimited, tuple},
     IResult,
@@ -13,7 +13,7 @@ pub mod token;
 use token::Token;
 
 pub fn lex_program<'a>(program: &'a str) -> IResult<&'a str, Vec<Token<'a>>> {
-    many0(delimited(
+    all_consuming(many0(delimited(
         multispace0,
         alt((
             map(tag("("), Token::LParen),
@@ -29,7 +29,7 @@ pub fn lex_program<'a>(program: &'a str) -> IResult<&'a str, Vec<Token<'a>>> {
             lex_identifier,
         )),
         multispace0,
-    ))(program)
+    )))(program)
 }
 
 fn lex_identifier<'a>(source: &'a str) -> IResult<&'a str, Token> {
