@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
     character::complete::{multispace0, satisfy},
-    combinator::{map, peek},
+    combinator::{map, peek, recognize, value},
     multi::many0,
     sequence::{delimited, tuple},
     IResult,
@@ -23,6 +23,8 @@ pub fn lex_program<'a>(program: &'a str) -> IResult<&'a str, Vec<Token<'a>>> {
             map(tag("{"), Token::LBrace),
             map(tag("}"), Token::RBrace),
             map(tag(";"), Token::Semicolon),
+            value(Token::Comma, tag(",")),
+            value(Token::Asterisk, tag("*")),
             map(nom::character::complete::i32, Token::Integer),
             lex_identifier,
         )),
@@ -52,7 +54,7 @@ mod test {
     #[test]
     fn test_main() -> Result<(), impl Error> {
         let source = r#"
-            int main() {
+            int main(int argc, char* argv) {
                 return 2;
             }
             "#;
@@ -67,6 +69,12 @@ mod test {
             Token::Ident(Identifier { name: "int" }),
             Token::Ident(Identifier { name: "main" }),
             Token::LParen("("),
+            Token::Ident(Identifier { name: "int" }),
+            Token::Ident(Identifier { name: "argc" }),
+            Token::Comma,
+            Token::Ident(Identifier { name: "char" }),
+            Token::Asterisk,
+            Token::Ident(Identifier { name: "argv" }),
             Token::RParen(")"),
             Token::LBrace("{"),
             Token::Ident(Identifier { name: "return" }),

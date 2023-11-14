@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token<'a> {
     LParen(&'a str),
     RParen(&'a str),
@@ -7,11 +7,13 @@ pub enum Token<'a> {
     LBrace(&'a str),
     RBrace(&'a str),
     Semicolon(&'a str),
+    Comma,
+    Asterisk,
     Ident(Identifier<'a>),
     Integer(i32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Identifier<'a> {
     pub name: &'a str,
 }
