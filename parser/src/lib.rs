@@ -3,7 +3,7 @@ use nom::branch::alt;
 use nom::combinator::{all_consuming, map};
 use nom::error::{self, ParseError};
 use nom::multi::many1;
-use nom::sequence::{delimited, tuple};
+use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::{
     multi::{many0, separated_list0},
     IResult,
@@ -98,7 +98,10 @@ fn parse_stmts<'a, E: ParseError<ParserIn<'a>>>(
 fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Stmt, E> {
-    alt((map(parse_return, ast::Stmt::Return),))(source)
+    terminated(
+        alt((map(parse_return, ast::Stmt::Return),)),
+        one(Token::Semicolon(";")),
+    )(source)
 }
 
 fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
