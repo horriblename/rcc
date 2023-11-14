@@ -18,6 +18,13 @@ type ParserResult<'a, T, E> = IResult<ParserIn<'a>, T, E>;
 
 type ParserIn<'a> = &'a [Token<'a>];
 
+macro_rules! mark {
+    ($e: expr, $($f: expr),+) => {{
+        println!($($f),+);
+        $e
+    }};
+}
+
 pub fn parse_program<'a, E: ParseError<ParserIn<'a>>>(
     program: &'a [Token],
 ) -> ParserResult<'a, ast::Program<'a>, E> {
@@ -54,16 +61,6 @@ fn parse_arg_list<'a, E: ParseError<ParserIn<'a>>>(
     source: &'a [Token],
 ) -> ParserResult<'a, Vec<ast::FnArg<'a>>, E> {
     separated_list0(one(Token::Comma), parse_arg)(source)
-}
-
-// there's gotta be a better way right?
-fn one<'a, E: ParseError<ParserIn<'a>>>(
-    token: Token<'a>,
-) -> impl Fn(ParserIn<'a>) -> ParserResult<'a, Token<'a>, E> {
-    move |source| match source.first() {
-        Some(tok) if tok == &token => Ok((&source[1..], Token::Comma)),
-        _ => temp_error(source),
-    }
 }
 
 fn parse_arg<'a, E: ParseError<ParserIn<'a>>>(
@@ -119,12 +116,29 @@ fn parse_int_literal<'a, E: ParseError<ParserIn<'a>>>(
     map(eat_int_literal, |value| ast::IntLiteral { value })(source)
 }
 
+// there's gotta be a better way right?
+fn one<'a, E: ParseError<ParserIn<'a>>>(
+    token: Token<'a>,
+) -> impl Fn(ParserIn<'a>) -> ParserResult<'a, Token<'a>, E> {
+    move |source| match source.first() {
+        Some(tok) if tok == &token => {
+            mark!(Ok((&source[1..], Token::Comma)), "match! one {:?}", token)
+        }
+        _ => mark!(
+            temp_error(source),
+            "not one({:?}): {:?}",
+            token,
+            source.first()
+        ),
+    }
+}
+
 fn eat_int_literal<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, i32, E> {
     match source.first() {
-        Some(Token::Integer(n)) => Ok((&source[1..], *n)),
-        _ => temp_error(source),
+        Some(Token::Integer(n)) => mark!(Ok((&source[1..], *n)), "match! {:?}", n),
+        _ => mark!(temp_error(source), "not int: {:?}", source.first()),
     }
 }
 
@@ -132,8 +146,12 @@ fn parse_identifier<'a, E: ParseError<ParserIn<'a>>>(
     source: &'a [Token],
 ) -> ParserResult<'a, ast::Identifier<'a>, E> {
     match source.first() {
-        Some(Token::Ident(name)) => Ok((&source[1..], ast::Identifier { name: dbg!(name) })),
-        _ => temp_error(source),
+        Some(Token::Ident(name)) => mark!(
+            Ok((&source[1..], ast::Identifier { name })),
+            "match! ident {:?}",
+            name
+        ),
+        _ => mark!(temp_error(source), "not ident: {:?}", source.first()),
     }
 }
 
