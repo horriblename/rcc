@@ -1,4 +1,4 @@
-use lexer::token::Token;
+use lexer::token::{self, Token};
 use nom::branch::alt;
 use nom::combinator::{all_consuming, map};
 use nom::error::{self, ParseError};
@@ -107,7 +107,13 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
 fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::ReturnStmt, E> {
-    map(parse_expr, |expr| ast::ReturnStmt { expr })(source)
+    map(
+        preceded(
+            one(Token::Ident(token::Identifier { name: "return" })),
+            parse_expr,
+        ),
+        |expr| ast::ReturnStmt { expr },
+    )(source)
 }
 
 fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
