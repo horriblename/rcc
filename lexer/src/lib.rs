@@ -26,6 +26,8 @@ pub fn lex_program<'a>(program: &'a str) -> IResult<&'a str, Vec<Token<'a>>> {
             value(Token::Comma, tag(",")),
             value(Token::Asterisk, tag("*")),
             value(Token::Minus, tag("-")),
+            value(Token::Tilde, tag("~")),
+            value(Token::Exclamation, tag("!")),
             map(nom::character::complete::i32, Token::Integer),
             lex_identifier,
         )),
@@ -56,6 +58,8 @@ mod test {
     fn test_main() -> Result<(), impl Error> {
         let source = r#"
             int main(int argc, char* argv) {
+                return ~100;
+                return !0;
                 return -2;
             }
             "#;
@@ -78,6 +82,14 @@ mod test {
             Token::Ident(Identifier { name: "argv" }),
             Token::RParen(")"),
             Token::LBrace("{"),
+            Token::Ident(Identifier { name: "return" }),
+            Token::Tilde,
+            Token::Integer(100),
+            Token::Semicolon(";"),
+            Token::Ident(Identifier { name: "return" }),
+            Token::Exclamation,
+            Token::Integer(0),
+            Token::Semicolon(";"),
             Token::Ident(Identifier { name: "return" }),
             Token::Minus,
             Token::Integer(2),

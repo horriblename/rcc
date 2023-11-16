@@ -10,6 +10,8 @@ pub enum Token<'a> {
     Comma,
     Asterisk,
     Minus,
+    Tilde,
+    Exclamation,
     Ident(Identifier<'a>),
     Integer(i32),
 }
