@@ -52,9 +52,11 @@ pub struct ReturnStmt<'a> {
     pub expr: Expr<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum UnarySign {
     Negate,
+    BitComplement,
+    LogicNegate,
 }
 
 #[derive(Debug, PartialEq)]

@@ -24,6 +24,8 @@ macro_rules! ident_ast {
 fn test_parse_program() {
     let prog = r#"
         int main(int argc, char argv) {
+            return ~100;
+            return !0;
             return -1;
         }
         "#;
@@ -46,12 +48,26 @@ fn test_parse_program() {
                     },
                 ],
                 body: Block {
-                    body: vec![Stmt::Return(ReturnStmt {
-                        expr: Expr::Unary(Box::new(UnaryExpr {
-                            symbol: UnarySign::Negate,
-                            expr: Expr::IntLit(IntLiteral { value: 1 }),
-                        })),
-                    })],
+                    body: vec![
+                        Stmt::Return(ReturnStmt {
+                            expr: Expr::Unary(Box::new(UnaryExpr {
+                                symbol: UnarySign::BitComplement,
+                                expr: Expr::IntLit(IntLiteral { value: 100 }),
+                            })),
+                        }),
+                        Stmt::Return(ReturnStmt {
+                            expr: Expr::Unary(Box::new(UnaryExpr {
+                                symbol: UnarySign::LogicNegate,
+                                expr: Expr::IntLit(IntLiteral { value: 0 }),
+                            })),
+                        }),
+                        Stmt::Return(ReturnStmt {
+                            expr: Expr::Unary(Box::new(UnaryExpr {
+                                symbol: UnarySign::Negate,
+                                expr: Expr::IntLit(IntLiteral { value: 1 }),
+                            })),
+                        }),
+                    ],
                 },
             })]
         },

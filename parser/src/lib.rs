@@ -1,6 +1,6 @@
 use lexer::token::{self, Token};
 use nom::branch::alt;
-use nom::combinator::{all_consuming, map};
+use nom::combinator::{all_consuming, map, value};
 use nom::error::{self, ParseError};
 use nom::multi::many1;
 use nom::sequence::{delimited, preceded, terminated, tuple};
@@ -162,7 +162,11 @@ fn one<'a, E: ParseError<ParserIn<'a>>>(
 fn one_unary_symbol<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::UnarySign, E> {
-    alt((map(one(Token::Minus), |_| ast::UnarySign::Negate),))(source)
+    alt((
+        value(ast::UnarySign::Negate, one(Token::Minus)),
+        value(ast::UnarySign::BitComplement, one(Token::Tilde)),
+        value(ast::UnarySign::LogicNegate, one(Token::Exclamation)),
+    ))(source)
 }
 
 fn eat_int_literal<'a, E: ParseError<ParserIn<'a>>>(
