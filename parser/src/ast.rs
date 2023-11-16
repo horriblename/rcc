@@ -12,13 +12,15 @@ pub enum TopLevel<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Stmt {
-    Return(ReturnStmt),
+pub enum Stmt<'a> {
+    Return(ReturnStmt<'a>),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Expr {
+pub enum Expr<'a> {
+    Unary(Box<UnaryExpr<'a>>),
     IntLit(IntLiteral),
+    Ident(Identifier<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -26,7 +28,7 @@ pub struct FnDef<'a> {
     pub return_type: Identifier<'a>,
     pub name: Identifier<'a>,
     pub args: Vec<FnArg<'a>>,
-    pub body: Block,
+    pub body: Block<'a>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,13 +43,24 @@ pub struct Identifier<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Block {
-    pub body: Vec<Stmt>,
+pub struct Block<'a> {
+    pub body: Vec<Stmt<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ReturnStmt {
-    pub expr: Expr,
+pub struct ReturnStmt<'a> {
+    pub expr: Expr<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum UnarySign {
+    Negate,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct UnaryExpr<'a> {
+    pub symbol: UnarySign,
+    pub expr: Expr<'a>,
 }
 
 #[derive(Debug, PartialEq)]

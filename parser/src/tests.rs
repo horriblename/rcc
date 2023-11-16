@@ -5,7 +5,10 @@ use lexer::{
 use nom::error::VerboseError;
 
 use crate::{
-    ast::{self, Block, FnArg, FnDef, IntLiteral, Program, ReturnStmt, Stmt, TopLevel},
+    ast::{
+        self, Block, Expr, FnArg, FnDef, IntLiteral, Program, ReturnStmt, Stmt, TopLevel,
+        UnaryExpr, UnarySign,
+    },
     parse_program, ParserIn,
 };
 
@@ -21,7 +24,7 @@ macro_rules! ident_ast {
 fn test_parse_program() {
     let prog = r#"
         int main(int argc, char argv) {
-            return 1;
+            return -1;
         }
         "#;
 
@@ -44,7 +47,10 @@ fn test_parse_program() {
                 ],
                 body: Block {
                     body: vec![Stmt::Return(ReturnStmt {
-                        expr: ast::Expr::IntLit(IntLiteral { value: 1 }),
+                        expr: Expr::Unary(Box::new(UnaryExpr {
+                            symbol: UnarySign::Negate,
+                            expr: Expr::IntLit(IntLiteral { value: 1 }),
+                        })),
                     })],
                 },
             })]

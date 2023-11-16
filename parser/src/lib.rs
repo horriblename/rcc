@@ -78,7 +78,7 @@ fn parse_arg<'a, E: ParseError<ParserIn<'a>>>(
 
 fn parse_block<'a, E: ParseError<ParserIn<'a>>>(
     source: &'a [Token],
-) -> ParserResult<'a, ast::Block, E> {
+) -> ParserResult<'a, ast::Block<'a>, E> {
     map(
         delimited(
             one(Token::LBrace("{")),
@@ -120,7 +120,20 @@ fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
-    map(parse_int_literal, ast::Expr::IntLit)(source)
+    alt((
+        map(parse_unary, |expr| ast::Expr::Unary(Box::new(expr))),
+        map(parse_int_literal, ast::Expr::IntLit),
+    ))(source)
+}
+
+fn parse_unary<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::UnaryExpr, E> {
+    alt((map(
+        tuple((one_unary_symbol, parse_expr)),
+        |(symbol, expr)| ast::UnaryExpr { symbol, expr },
+    ),))(source)
+    .map_err(|x| mark!(x, "unary failed"))
 }
 
 fn parse_int_literal<'a, E: ParseError<ParserIn<'a>>>(
@@ -144,6 +157,12 @@ fn one<'a, E: ParseError<ParserIn<'a>>>(
             source.first()
         ),
     }
+}
+
+fn one_unary_symbol<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::UnarySign, E> {
+    alt((map(one(Token::Minus), |_| ast::UnarySign::Negate),))(source)
 }
 
 fn eat_int_literal<'a, E: ParseError<ParserIn<'a>>>(
