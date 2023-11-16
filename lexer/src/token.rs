@@ -9,6 +9,7 @@ pub enum Token<'a> {
     Semicolon(&'a str),
     Comma,
     Asterisk,
+    Minus,
     Ident(Identifier<'a>),
     Integer(i32),
 }
