@@ -19,6 +19,7 @@ pub enum Stmt<'a> {
 #[derive(Debug, PartialEq)]
 pub enum Expr<'a> {
     Unary(Box<UnaryExpr<'a>>),
+    Infix(Box<InfixExpr<'a>>),
     IntLit(IntLiteral),
     Ident(Identifier<'a>),
 }
@@ -63,6 +64,22 @@ pub enum UnarySign {
 pub struct UnaryExpr<'a> {
     pub symbol: UnarySign,
     pub expr: Expr<'a>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum InfixSymbol {
+    Plus,
+    Minus,
+    Times,
+    Divide,
+    Modulo,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct InfixExpr<'a> {
+    pub symbol: InfixSymbol,
+    pub left: Expr<'a>,
+    pub right: Expr<'a>,
 }
 
 #[derive(Debug, PartialEq)]

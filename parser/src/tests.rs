@@ -6,8 +6,8 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, Block, Expr, FnArg, FnDef, IntLiteral, Program, ReturnStmt, Stmt, TopLevel,
-        UnaryExpr, UnarySign,
+        self, Block, Expr, FnArg, FnDef, InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt,
+        Stmt, TopLevel, UnaryExpr, UnarySign,
     },
     parse_program, ParserIn,
 };
@@ -27,6 +27,7 @@ fn test_parse_program() {
             return ~100;
             return !0;
             return -1;
+            return 1 + 3;
         }
         "#;
 
@@ -67,6 +68,27 @@ fn test_parse_program() {
                                 expr: Expr::IntLit(IntLiteral { value: 1 }),
                             })),
                         }),
+                        Stmt::Return(ReturnStmt {
+                            expr: Expr::Infix(Box::new(InfixExpr {
+                                symbol: InfixSymbol::Plus,
+                                left: Expr::IntLit(IntLiteral { value: 1 }),
+                                right: Expr::IntLit(IntLiteral { value: 3 }),
+                            })),
+                        }),
+                        // Stmt::Return(ReturnStmt {
+                        //     expr: Expr::Infix(Box::new(InfixExpr {
+                        //         symbol: InfixSymbol::Plus,
+                        //         left: Expr::Infix(Box::new(InfixExpr {
+                        //             symbol: InfixSymbol::Times,
+                        //             left: Expr::IntLit(IntLiteral { value: 1 }),
+                        //             right: Expr::Unary(Box::new(UnaryExpr {
+                        //                 symbol: UnarySign::Negate,
+                        //                 expr: Expr::IntLit(IntLiteral { value: 2 }),
+                        //             })),
+                        //         })),
+                        //         right: Expr::IntLit(IntLiteral { value: 3 }),
+                        //     })),
+                        // }),
                     ],
                 },
             })]

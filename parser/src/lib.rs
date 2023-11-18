@@ -1,3 +1,4 @@
+use ast::InfixSymbol;
 use lexer::token::{self, Token, TokenType};
 use nom::branch::alt;
 use nom::combinator::{all_consuming, map, value};
@@ -117,18 +118,29 @@ fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
     alt((
-        map(parse_unary, |expr| ast::Expr::Unary(Box::new(expr))),
+        parse_additive,
+        // map(parse_int_literal, ast::Expr::IntLit),
+    ))(source)
+}
+
+fn parse_primary_expr<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    alt((
+        map(parse_identifier, ast::Expr::Ident),
         map(parse_int_literal, ast::Expr::IntLit),
     ))(source)
 }
 
 fn parse_unary<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
-) -> ParserResult<'a, ast::UnaryExpr, E> {
-    alt((map(
-        tuple((one_unary_symbol, parse_expr)),
-        |(symbol, expr)| ast::UnaryExpr { symbol, expr },
-    ),))(source)
+) -> ParserResult<'a, ast::Expr, E> {
+    alt((
+        parse_primary_expr,
+        map(tuple((one_unary_symbol, parse_unary)), |(symbol, expr)| {
+            ast::Expr::Unary(Box::new(ast::UnaryExpr { symbol, expr }))
+        }),
+    ))(source)
     .map_err(|x| mark!(x, "unary failed"))
 }
 
@@ -136,6 +148,49 @@ fn parse_int_literal<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::IntLiteral, E> {
     map(eat_int_literal, |value| ast::IntLiteral { value })(source)
+}
+
+fn parse_multiplicative<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    // TODO:
+    parse_unary(source)
+}
+
+// additive -> multiplicative ( ('+'|'-') multiplicative )*
+fn parse_additive<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_multiplicative(source)?;
+
+    // left-recursive is so fucking hard so I decided to cheat a bit and use loops :)
+    parse_plus_post(source, left)
+}
+
+// repeatedly parses ( ('+'|'-') multiplicative )*
+// and maintains left-associativity
+fn parse_plus_post<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+    left: ast::Expr<'a>,
+) -> ParserResult<'a, ast::Expr<'a>, E> {
+    let res = tuple((
+        alt((
+            value(InfixSymbol::Plus, one(TokenType::Plus)),
+            value(InfixSymbol::Minus, one(TokenType::Minus)),
+        )),
+        parse_multiplicative::<E>,
+    ))(source);
+    match res {
+        Err(_) => Ok((source, left)),
+        Ok((source, (symbol, right))) => parse_plus_post(
+            source,
+            ast::Expr::Infix(Box::new(ast::InfixExpr {
+                symbol: mark!(symbol, "symbol is {:?}", symbol),
+                left,
+                right,
+            })),
+        ),
+    }
 }
 
 // there's gotta be a better way right?
