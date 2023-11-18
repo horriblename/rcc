@@ -39,7 +39,7 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
             tag_tok("*", TokenType::Asterisk),
             tag_tok("/", TokenType::Slash),
             tag_tok("%", TokenType::Percent),
-            tag_tok("+", TokenType::Minus),
+            tag_tok("+", TokenType::Plus),
             tag_tok("-", TokenType::Minus),
             tag_tok("~", TokenType::Tilde),
             tag_tok("!", TokenType::Exclamation),
