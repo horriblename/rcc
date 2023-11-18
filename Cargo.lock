@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "codegen"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+ "nom",
+ "parser",
+]
+
+[[package]]
 name = "lexer"
 version = "0.1.0"
 dependencies = [
