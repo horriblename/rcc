@@ -30,7 +30,7 @@ fn test_parse_program() {
         }
         "#;
 
-    let (_, tokens) = lex_program(prog).unwrap();
+    let (_, tokens) = lex_program(prog.into()).unwrap();
 
     let expect = Program {
         children: {

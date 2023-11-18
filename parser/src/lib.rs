@@ -1,4 +1,4 @@
-use lexer::token::{self, Token};
+use lexer::token::{self, Token, TokenType};
 use nom::branch::alt;
 use nom::combinator::{all_consuming, map, value};
 use nom::error::{self, ParseError};
@@ -26,29 +26,29 @@ macro_rules! mark {
 }
 
 pub fn parse_program<'a, E: ParseError<ParserIn<'a>>>(
-    program: &'a [Token],
+    program: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Program<'a>, E> {
     let (rest, out) = all_consuming(many0(parse_top_level))(program)?;
     Ok((rest, ast::Program { children: out }))
 }
 
 fn parse_top_level<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::TopLevel<'a>, E> {
     alt((map(parse_function, ast::TopLevel::FnDef),))(source)
 }
 
 fn parse_function<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::FnDef<'a>, E> {
     map(
         tuple((
             parse_identifier,
             parse_identifier,
             delimited(
-                one(Token::LParen("(")),
+                one(TokenType::LParen),
                 parse_arg_list,
-                one(Token::RParen(")")),
+                one(TokenType::RParen),
             ),
             parse_block,
         )),
@@ -62,13 +62,13 @@ fn parse_function<'a, E: ParseError<ParserIn<'a>>>(
 }
 
 fn parse_arg_list<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, Vec<ast::FnArg<'a>>, E> {
-    separated_list0(one(Token::Comma), parse_arg)(source)
+    separated_list0(one(TokenType::Comma), parse_arg)(source)
 }
 
 fn parse_arg<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::FnArg<'a>, E> {
     map(
         tuple((parse_identifier, parse_identifier)),
@@ -77,14 +77,10 @@ fn parse_arg<'a, E: ParseError<ParserIn<'a>>>(
 }
 
 fn parse_block<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Block<'a>, E> {
     map(
-        delimited(
-            one(Token::LBrace("{")),
-            parse_stmts,
-            one(Token::RBrace("}")),
-        ),
+        delimited(one(TokenType::LBrace), parse_stmts, one(TokenType::RBrace)),
         |body| ast::Block { body },
     )(source)
 }
@@ -100,7 +96,7 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Stmt, E> {
     terminated(
         alt((map(parse_return, ast::Stmt::Return),)),
-        one(Token::Semicolon(";")),
+        one(TokenType::Semicolon),
     )(source)
 }
 
@@ -109,7 +105,7 @@ fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::ReturnStmt, E> {
     map(
         preceded(
-            one(Token::Ident(token::Identifier { name: "return" })),
+            one(TokenType::Ident(token::Identifier { name: "return" })),
             parse_expr,
         ),
         |expr| ast::ReturnStmt { expr },
@@ -144,11 +140,11 @@ fn parse_int_literal<'a, E: ParseError<ParserIn<'a>>>(
 
 // there's gotta be a better way right?
 fn one<'a, E: ParseError<ParserIn<'a>>>(
-    token: Token<'a>,
-) -> impl Fn(ParserIn<'a>) -> ParserResult<'a, Token<'a>, E> {
+    token: TokenType<'a>,
+) -> impl Fn(ParserIn<'a>) -> ParserResult<'a, (), E> {
     move |source| match source.first() {
-        Some(tok) if tok == &token => {
-            mark!(Ok((&source[1..], Token::Comma)), "match! one {:?}", token)
+        Some(tok) if tok.type_ == token => {
+            mark!(Ok((&source[1..], ())), "match! one {:?}", token)
         }
         _ => mark!(
             temp_error(source),
@@ -163,9 +159,9 @@ fn one_unary_symbol<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::UnarySign, E> {
     alt((
-        value(ast::UnarySign::Negate, one(Token::Minus)),
-        value(ast::UnarySign::BitComplement, one(Token::Tilde)),
-        value(ast::UnarySign::LogicNegate, one(Token::Exclamation)),
+        value(ast::UnarySign::Negate, one(TokenType::Minus)),
+        value(ast::UnarySign::BitComplement, one(TokenType::Tilde)),
+        value(ast::UnarySign::LogicNegate, one(TokenType::Exclamation)),
     ))(source)
 }
 
@@ -173,16 +169,22 @@ fn eat_int_literal<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, i32, E> {
     match source.first() {
-        Some(Token::Integer(n)) => mark!(Ok((&source[1..], *n)), "match! {:?}", n),
+        Some(Token {
+            type_: TokenType::Integer(n),
+            ..
+        }) => mark!(Ok((&source[1..], *n)), "match! {:?}", n),
         _ => mark!(temp_error(source), "not int: {:?}", source.first()),
     }
 }
 
 fn parse_identifier<'a, E: ParseError<ParserIn<'a>>>(
-    source: &'a [Token],
+    source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Identifier<'a>, E> {
     match source.first() {
-        Some(Token::Ident(name)) => mark!(
+        Some(Token {
+            type_: TokenType::Ident(name),
+            ..
+        }) => mark!(
             Ok((&source[1..], ast::Identifier { name })),
             "match! ident {:?}",
             name

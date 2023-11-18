@@ -1,5 +1,6 @@
 use nom_locate::LocatedSpan;
 
+#[derive(Debug)]
 pub struct Token<'a> {
     pub position: LocatedSpan<&'a str>,
     pub type_: TokenType<'a>,
