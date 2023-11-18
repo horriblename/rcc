@@ -1,7 +1,4 @@
-use std::{
-    io,
-    process::{self},
-};
+use std::process::{self};
 
 use crate::codegen;
 
@@ -16,19 +13,8 @@ fn test_code_gen() {
     let outname = "out";
 
     gen_code(program, asm_name);
-
-    let out = compile(asm_name, outname).unwrap();
-    println!("gcc stderr: {}", String::from_utf8(out.stderr).unwrap());
-    assert_eq!(out.status.code().unwrap(), 0);
-
-    assert_eq!(
-        std::process::Command::new(format!("./{}", outname))
-            .output()
-            .unwrap()
-            .status
-            .code(),
-        Some(2)
-    );
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(2));
 }
 
 fn gen_code(program: &str, asm_name: &str) {
@@ -41,8 +27,19 @@ fn gen_code(program: &str, asm_name: &str) {
     codegen(&ast, &mut outfile);
 }
 
-fn compile(fname: &str, outname: &str) -> io::Result<process::Output> {
-    std::process::Command::new("gcc")
+fn compile(fname: &str, outname: &str) {
+    let out = std::process::Command::new("gcc")
         .args(["-m64", fname, "-o", outname])
         .output()
+        .unwrap();
+
+    println!("gcc stderr: {}", String::from_utf8(out.stderr).unwrap());
+    assert_eq!(out.status.code().unwrap(), 0);
+}
+
+fn exec_file(fname: &str, args: &[&str]) -> process::Output {
+    std::process::Command::new(format!("./{}", fname))
+        .args(args)
+        .output()
+        .unwrap()
 }
