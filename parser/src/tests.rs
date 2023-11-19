@@ -49,7 +49,7 @@ fn test_parse_program() {
         }};
     }
 
-    fn int_<'a>(n: i32) -> Expr<'a> {
+    fn int<'a>(n: i32) -> Expr<'a> {
         Expr::IntLit(IntLiteral { value: n })
     }
 
@@ -80,15 +80,15 @@ fn test_parse_program() {
                             name: ident_ast!("b"),
                             initializer: Some(op!(
                                 UnarySign::BitComplement,
-                                op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int_(100)))
+                                op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int(100)))
                             )),
                         }),
-                        Stmt::Expr(op!(UnarySign::Negate, int_(1))),
+                        Stmt::Expr(op!(UnarySign::Negate, int(1))),
                         Stmt::Return(ReturnStmt {
                             expr: op!(
                                 InfixSymbol::Plus,
-                                op!(InfixSymbol::Times, int_(1), op!(UnarySign::Negate, int_(2))),
-                                int_(3)
+                                op!(InfixSymbol::Times, int(1), op!(UnarySign::Negate, int(2))),
+                                int(3)
                             ),
                         }),
                     ],
