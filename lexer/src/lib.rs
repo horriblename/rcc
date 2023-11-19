@@ -66,6 +66,7 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
                 tag_tok("&", TokenType::BitAnd),
                 tag_tok("|", TokenType::BitOr),
                 tag_tok("^", TokenType::Caret),
+                tag_tok("=", TokenType::Equal),
             )),
             map(
                 tuple((position, nom::character::complete::i32)),
