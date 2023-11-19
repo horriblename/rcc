@@ -57,7 +57,7 @@ fn test_main() {
 
 #[test]
 fn test_all() {
-    let source = "() [ ] { } ; , * / % + - ~ ! && || == != < <= > >=";
+    let source = "() [ ] { } ; , * / % + - ~ ! && || == != < <= > >= & | ^ << >>";
 
     let expect = [
         TokenType::LParen,
@@ -83,6 +83,11 @@ fn test_all() {
         TokenType::LessEq,
         TokenType::More,
         TokenType::MoreEq,
+        TokenType::BitAnd,
+        TokenType::BitOr,
+        TokenType::Caret,
+        TokenType::BitShiftLeft,
+        TokenType::BitShiftRight,
     ];
 
     check_tokens(source, &expect)

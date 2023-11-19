@@ -36,6 +36,8 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
                 tag_tok("!=", TokenType::BangEqual),
                 tag_tok("<=", TokenType::LessEq),
                 tag_tok(">=", TokenType::MoreEq),
+                tag_tok("<<", TokenType::BitShiftLeft),
+                tag_tok(">>", TokenType::BitShiftRight),
             )),
             alt((
                 tag_tok("(", TokenType::LParen),
@@ -55,6 +57,9 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
                 tag_tok("!", TokenType::Exclamation),
                 tag_tok("<", TokenType::Less),
                 tag_tok(">", TokenType::More),
+                tag_tok("&", TokenType::BitAnd),
+                tag_tok("|", TokenType::BitOr),
+                tag_tok("^", TokenType::Caret),
             )),
             map(
                 tuple((position, nom::character::complete::i32)),
