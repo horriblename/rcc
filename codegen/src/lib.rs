@@ -131,10 +131,30 @@ fn gen_infix_expr(expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
 
             write_op!(out, "movl %edx, %eax");
         }
-        ast::InfixSymbol::Less => todo!(),
-        ast::InfixSymbol::More => todo!(),
-        ast::InfixSymbol::LessEq => todo!(),
-        ast::InfixSymbol::MoreEq => todo!(),
+        ast::InfixSymbol::Less => {
+            write_op!(out, "pop %rcx"); // rax = right, rcx = left
+            write_op!(out, "cmpl %eax, %ecx"); // compare and set flags
+            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "setl %al"); // set if less
+        }
+        ast::InfixSymbol::More => {
+            write_op!(out, "pop %rcx"); // rax = right, rcx = left
+            write_op!(out, "cmpl %eax, %ecx"); // compare and set flags
+            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "setg %al"); // set if less
+        }
+        ast::InfixSymbol::LessEq => {
+            write_op!(out, "pop %rcx");
+            write_op!(out, "cmpl %eax, %ecx");
+            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "setle %al")
+        }
+        ast::InfixSymbol::MoreEq => {
+            write_op!(out, "pop %rcx");
+            write_op!(out, "cmpl %eax, %ecx");
+            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "setge %al")
+        }
         ast::InfixSymbol::Equality => {
             write_op!(out, "pop %rcx");
             write_op!(out, "cmpl %eax, %ecx");
@@ -147,7 +167,7 @@ fn gen_infix_expr(expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
             write_op!(out, "movl $0, %eax");
             write_op!(out, "setne %al");
         }
-        ast::InfixSymbol::LogicalAnd => todo!(),
+        ast::InfixSymbol::LogicalAnd => {}
         ast::InfixSymbol::LogicalOr => todo!(),
     }
 }

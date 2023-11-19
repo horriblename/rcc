@@ -47,6 +47,36 @@ fn test_inequality() {
     assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
 }
 
+#[test]
+fn test_less() {
+    let program = r#"
+        int main() {
+            return 1 < 3;
+        }
+        "#;
+    let asm_name = "out_less.s";
+    let outname = "out_less";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
+}
+
+#[test]
+fn test_less_eq() {
+    let program = r#"
+        int main() {
+            return 5 <= 8;
+        }
+        "#;
+    let asm_name = "out_less_eq.s";
+    let outname = "out_less_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
+}
+
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();
@@ -64,7 +94,7 @@ fn compile(fname: &str, outname: &str) {
         .unwrap();
 
     println!("gcc stderr: {}", String::from_utf8(out.stderr).unwrap());
-    assert_eq!(out.status.code().unwrap(), 0);
+    assert_eq!(out.status.code().unwrap(), 0, "compilation failed!");
 }
 
 fn exec_file(fname: &str, args: &[&str]) -> process::Output {
