@@ -6,7 +6,7 @@ use std::process::{self};
 fn test_code_gen() {
     let program = r#"
         int main() {
-            return 1 + 2 + 3*9 + 4 + 5 - 1;
+            return 1 + 2 + 3*9 + 4 + 7/3 - 1;
         }
         "#;
     let asm_name = "out.s";
@@ -14,7 +14,7 @@ fn test_code_gen() {
 
     gen_code(program.into(), asm_name);
     compile(asm_name, outname);
-    assert_eq!(exec_file(outname, &[]).status.code(), Some(38));
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(35));
 }
 
 #[test]
