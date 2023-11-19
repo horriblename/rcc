@@ -9,7 +9,7 @@ use crate::{
         self, Block, Expr, FnArg, FnDef, InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt,
         Stmt, TopLevel, UnaryExpr, UnarySign,
     },
-    parse_program, ParserIn,
+    parse_expr, parse_program, ParserIn,
 };
 
 macro_rules! ident_ast {
@@ -145,4 +145,61 @@ fn test_parse_program() {
     let (_, got) = parse_program::<VerboseError<ParserIn>>(&tokens).unwrap();
 
     assert_eq!(got, expect);
+}
+
+#[test]
+fn test_op_precedence() {
+    let x = "1<8 | 11 || 4^3 > 2 == 4 + 4*3 & 9 && 3 >= 4";
+
+    let (_, tokens) = lexer::lex_program_source(x).unwrap();
+    let (_, tree) = parse_expr::<VerboseError<ParserIn>>(&tokens).unwrap();
+
+    let ans = show_operator_precedence(&tree);
+    let expected = "( ( ( 1 < 8 ) | 11 ) || ( ( 4 ^ ( ( ( 3 > 2 ) == ( 4 + ( 4 * 3 ) ) ) & 9 ) ) && ( 3 >= 4 ) ) )";
+    assert_eq!(ans, expected)
+}
+
+fn show_operator_precedence(expr: &ast::Expr) -> String {
+    match expr {
+        Expr::Unary(expr) => {
+            format!(
+                "( {}{} )",
+                match expr.symbol {
+                    UnarySign::Negate => '-',
+                    UnarySign::BitComplement => '~',
+                    UnarySign::LogicNegate => '!',
+                },
+                &show_operator_precedence(&expr.expr)
+            )
+        }
+        Expr::Infix(expr) => {
+            format!(
+                "( {} {} {} )",
+                &show_operator_precedence(&expr.left),
+                match expr.symbol {
+                    InfixSymbol::Plus => "+",
+                    InfixSymbol::Minus => "-",
+                    InfixSymbol::Times => "*",
+                    InfixSymbol::Divide => "/",
+                    InfixSymbol::Modulo => "%",
+                    InfixSymbol::Less => "<",
+                    InfixSymbol::More => ">",
+                    InfixSymbol::LessEq => "<=",
+                    InfixSymbol::MoreEq => ">=",
+                    InfixSymbol::Equality => "==",
+                    InfixSymbol::NotEq => "!=",
+                    InfixSymbol::LogicalAnd => "&&",
+                    InfixSymbol::LogicalOr => "||",
+                    InfixSymbol::BitAnd => "&",
+                    InfixSymbol::BitOr => "|",
+                    InfixSymbol::BitXor => "^",
+                    InfixSymbol::BitShiftLeft => "<<",
+                    InfixSymbol::BitShiftRight => ">>",
+                },
+                &show_operator_precedence(&expr.right)
+            )
+        }
+        Expr::IntLit(n) => format!("{}", n.value),
+        Expr::Ident(ident) => format!("{}", ident.name.name),
+    }
 }

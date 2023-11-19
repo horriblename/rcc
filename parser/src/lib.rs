@@ -238,13 +238,52 @@ fn parse_equality<'a, E: ParseError<ParserIn<'a>>>(
     parse_equality_repeat(source, left)
 }
 
-fn parse_logical_and<'a, E: ParseError<ParserIn<'a>>>(
+fn parse_bitwise_and<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_equality(source)?;
 
+    infix_parser!(fn parse_bitwise_and_repeat(
+       parse_equality::<E>,
+       value(InfixSymbol::BitAnd, one(TokenType::BitAnd))
+    ));
+
+    parse_bitwise_and_repeat(source, left)
+}
+
+fn parse_bitwise_xor<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_bitwise_and(source)?;
+
+    infix_parser!(fn parse_bitwise_xor_repeat(
+       parse_bitwise_and::<E>,
+       value(InfixSymbol::BitXor, one(TokenType::Caret))
+    ));
+
+    parse_bitwise_xor_repeat(source, left)
+}
+
+fn parse_bitwise_or<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_bitwise_xor(source)?;
+
+    infix_parser!(fn parse_bitwise_or_repeat(
+       parse_bitwise_and::<E>,
+       value(InfixSymbol::BitOr, one(TokenType::BitOr))
+    ));
+
+    parse_bitwise_or_repeat(source, left)
+}
+
+fn parse_logical_and<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_bitwise_or(source)?;
+
     infix_parser!(fn parse_logical_and_repeat(
-        parse_equality::<E>,
+        parse_bitwise_or::<E>,
         value(InfixSymbol::LogicalAnd, one(TokenType::LogicalAnd))
     ));
 
