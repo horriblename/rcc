@@ -26,9 +26,7 @@ fn test_parse_program() {
         int main(int argc, char argv) {
             int a;
             int b = ~!-100;
-            return ~100;
-            return !0;
-            return -1;
+            -1;
             return 1 * -2 + 3;
         }
         "#;
@@ -85,24 +83,7 @@ fn test_parse_program() {
                                 op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int_(100)))
                             )),
                         }),
-                        Stmt::Return(ReturnStmt {
-                            expr: Expr::Unary(Box::new(UnaryExpr {
-                                symbol: UnarySign::BitComplement,
-                                expr: Expr::IntLit(IntLiteral { value: 100 }),
-                            })),
-                        }),
-                        Stmt::Return(ReturnStmt {
-                            expr: Expr::Unary(Box::new(UnaryExpr {
-                                symbol: UnarySign::LogicNegate,
-                                expr: Expr::IntLit(IntLiteral { value: 0 }),
-                            })),
-                        }),
-                        Stmt::Return(ReturnStmt {
-                            expr: Expr::Unary(Box::new(UnaryExpr {
-                                symbol: UnarySign::Negate,
-                                expr: Expr::IntLit(IntLiteral { value: 1 }),
-                            })),
-                        }),
+                        Stmt::Expr(op!(UnarySign::Negate, int_(1))),
                         Stmt::Return(ReturnStmt {
                             expr: op!(
                                 InfixSymbol::Plus,

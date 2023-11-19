@@ -15,6 +15,7 @@ pub enum TopLevel<'a> {
 pub enum Stmt<'a> {
     Return(ReturnStmt<'a>),
     Decl(DeclarationStmt<'a>),
+    Expr(Expr<'a>),
 }
 
 #[derive(Debug, PartialEq)]
