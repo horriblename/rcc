@@ -63,6 +63,7 @@ fn gen_return_stmt(stmt: &ast::ReturnStmt, out: &mut impl std::io::Write) {
 fn gen_expr(expr: &ast::Expr, out: &mut impl std::io::Write) {
     match expr {
         ast::Expr::Ident(_) => todo!(),
+        ast::Expr::Infix(_) => todo!(),
         ast::Expr::Unary(expr) => gen_unary_expr(expr, out),
         ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movl ${}, %eax", value),
     }
