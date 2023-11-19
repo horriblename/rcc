@@ -77,6 +77,36 @@ fn test_less_eq() {
     assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
 }
 
+#[test]
+fn test_logical_or() {
+    let program = r#"
+        int main() {
+            return 0 || 1 || 3;
+        }
+        "#;
+    let asm_name = "out_logical_or_eq.s";
+    let outname = "out_logical_or_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
+}
+
+#[test]
+fn test_logical_and() {
+    let program = r#"
+        int main() {
+            return 3 && 2;
+        }
+        "#;
+    let asm_name = "out_logical_and_eq.s";
+    let outname = "out_logical_and_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
+}
+
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();
