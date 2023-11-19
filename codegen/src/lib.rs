@@ -95,41 +95,30 @@ fn gen_unary_expr(expr: &ast::UnaryExpr, out: &mut impl std::io::Write) {
 }
 
 fn gen_infix_expr(expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
+    gen_expr(&expr.left, out);
+    write_op!(out, "push %rax");
+    gen_expr(&expr.right, out);
+
     match expr.symbol {
         ast::InfixSymbol::Plus => {
-            gen_expr(&expr.left, out);
-            write_op!(out, "push %rax");
-            gen_expr(&expr.right, out);
             write_op!(out, "pop %rcx");
             write_op!(out, "addl %ecx, %eax")
         }
         ast::InfixSymbol::Minus => {
-            gen_expr(&expr.left, out);
-            write_op!(out, "push %rax");
-            gen_expr(&expr.right, out);
             write_op!(out, "movl %eax, %ecx");
             write_op!(out, "pop %rax");
             write_op!(out, "subl %ecx, %eax")
         }
         ast::InfixSymbol::Times => {
-            gen_expr(&expr.left, out);
-            write_op!(out, "push %rax");
-            gen_expr(&expr.right, out);
             write_op!(out, "pop %rcx");
             write_op!(out, "imul %ecx, %eax")
         }
         ast::InfixSymbol::Divide => {
-            gen_expr(&expr.left, out);
-            write_op!(out, "push %rax");
-            gen_expr(&expr.right, out);
             write_op!(out, "movl %eax, %ebx");
             write_op!(out, "pop %rax");
             write_op!(out, "idivl %ebx");
         }
         ast::InfixSymbol::Modulo => {
-            gen_expr(&expr.left, out);
-            write_op!(out, "push %rax");
-            gen_expr(&expr.right, out);
             write_op!(out, "movl %eax, %ebx");
             write_op!(out, "pop %rax");
             write_op!(out, "idivl %ebx");
