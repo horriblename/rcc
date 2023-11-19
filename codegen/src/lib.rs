@@ -131,5 +131,23 @@ fn gen_infix_expr(expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
 
             write_op!(out, "movl %edx, %eax");
         }
+        ast::InfixSymbol::Less => todo!(),
+        ast::InfixSymbol::More => todo!(),
+        ast::InfixSymbol::LessEq => todo!(),
+        ast::InfixSymbol::MoreEq => todo!(),
+        ast::InfixSymbol::Equality => {
+            write_op!(out, "pop %rcx");
+            write_op!(out, "cmpl %eax, %ecx");
+            write_op!(out, "movl $0, %eax");
+            write_op!(out, "sete %al");
+        }
+        ast::InfixSymbol::NotEq => {
+            write_op!(out, "pop %rcx");
+            write_op!(out, "cmpl %eax, %ecx");
+            write_op!(out, "movl $0, %eax");
+            write_op!(out, "setne %al");
+        }
+        ast::InfixSymbol::LogicalAnd => todo!(),
+        ast::InfixSymbol::LogicalOr => todo!(),
     }
 }
