@@ -29,6 +29,7 @@ fn test_parse_program() {
             return -1;
             return 1 * -2 + 3;
             return 1 + 2 + 3*9 + 4 + 5 - 1;
+            return 1 < 2 == 4 + 4*3 >= 4;
         }
         "#;
 
@@ -114,6 +115,21 @@ fn test_parse_program() {
                                     int_(5)
                                 ),
                                 Expr::IntLit(IntLiteral { value: 1 })
+                            ),
+                        }),
+                        Stmt::Return(ReturnStmt {
+                            expr: op!(
+                                InfixSymbol::Equality,
+                                op!(InfixSymbol::Less, int_(1), int_(2)),
+                                op!(
+                                    InfixSymbol::MoreEq,
+                                    op!(
+                                        InfixSymbol::Plus,
+                                        int_(4),
+                                        op!(InfixSymbol::Times, int_(4), int_(3))
+                                    ),
+                                    int_(4)
+                                )
                             ),
                         }),
                     ],

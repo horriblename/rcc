@@ -73,6 +73,14 @@ pub enum InfixSymbol {
     Times,
     Divide,
     Modulo,
+    Less,
+    More,
+    LessEq,
+    MoreEq,
+    Equality,
+    NotEq,
+    LogicalAnd,
+    LogicalOr,
 }
 
 #[derive(Debug, PartialEq)]

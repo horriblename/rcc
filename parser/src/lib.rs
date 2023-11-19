@@ -118,7 +118,7 @@ fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
     alt((
-        parse_additive,
+        parse_equality,
         // map(parse_int_literal, ast::Expr::IntLit),
     ))(source)
 }
@@ -168,6 +168,22 @@ fn parse_additive<'a, E: ParseError<ParserIn<'a>>>(
     parse_additive_repeat(source, left)
 }
 
+fn parse_comparator<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_additive(source)?;
+
+    parse_comparator_repeat(source, left)
+}
+
+fn parse_equality<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_comparator(source)?;
+
+    parse_equality_repeat(source, left)
+}
+
 // Creates a left-associative infix parser, e.g. '+', '-' etc.
 macro_rules! infix_parser {
     ($fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
@@ -207,6 +223,20 @@ infix_parser!(parse_multiplicative_repeat(
     value(InfixSymbol::Times, one(TokenType::Asterisk)),
     value(InfixSymbol::Divide, one(TokenType::Slash)),
     value(InfixSymbol::Modulo, one(TokenType::Percent))
+));
+
+infix_parser!(parse_comparator_repeat(
+    parse_additive::<E>,
+    value(InfixSymbol::Less, one(TokenType::Less)),
+    value(InfixSymbol::LessEq, one(TokenType::LessEq)),
+    value(InfixSymbol::More, one(TokenType::More)),
+    value(InfixSymbol::MoreEq, one(TokenType::MoreEq))
+));
+
+infix_parser!(parse_equality_repeat(
+    parse_comparator::<E>,
+    value(InfixSymbol::Equality, one(TokenType::EqEqual)),
+    value(InfixSymbol::NotEq, one(TokenType::BangEqual))
 ));
 
 // there's gotta be a better way right?
