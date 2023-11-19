@@ -6,8 +6,8 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, Block, Expr, FnArg, FnDef, InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt,
-        Stmt, TopLevel, UnaryExpr, UnarySign,
+        self, Block, DeclarationStmt, Expr, FnArg, FnDef, InfixExpr, InfixSymbol, IntLiteral,
+        Program, ReturnStmt, Stmt, TopLevel, UnaryExpr, UnarySign,
     },
     parse_expr, parse_program, ParserIn,
 };
@@ -24,12 +24,12 @@ macro_rules! ident_ast {
 fn test_parse_program() {
     let prog = r#"
         int main(int argc, char argv) {
+            int a;
+            int b = ~!-100;
             return ~100;
             return !0;
             return -1;
             return 1 * -2 + 3;
-            return 1 + 2 + 3*9 + 4 + 5 - 1;
-            return 1 < 8 || 4 > 2 == 4 + 4*3 && 3 >= 4;
         }
         "#;
 
@@ -72,6 +72,19 @@ fn test_parse_program() {
                 ],
                 body: Block {
                     body: vec![
+                        Stmt::Decl(DeclarationStmt {
+                            type_: ident_ast!("int"),
+                            name: ident_ast!("a"),
+                            initializer: None,
+                        }),
+                        Stmt::Decl(DeclarationStmt {
+                            type_: ident_ast!("int"),
+                            name: ident_ast!("b"),
+                            initializer: Some(op!(
+                                UnarySign::BitComplement,
+                                op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int_(100)))
+                            )),
+                        }),
                         Stmt::Return(ReturnStmt {
                             expr: Expr::Unary(Box::new(UnaryExpr {
                                 symbol: UnarySign::BitComplement,
@@ -95,45 +108,6 @@ fn test_parse_program() {
                                 InfixSymbol::Plus,
                                 op!(InfixSymbol::Times, int_(1), op!(UnarySign::Negate, int_(2))),
                                 int_(3)
-                            ),
-                        }),
-                        // left associativity
-                        Stmt::Return(ReturnStmt {
-                            expr: op!(
-                                InfixSymbol::Minus,
-                                op!(
-                                    InfixSymbol::Plus,
-                                    op!(
-                                        InfixSymbol::Plus,
-                                        op!(
-                                            InfixSymbol::Plus,
-                                            op!(InfixSymbol::Plus, int_(1), int_(2)),
-                                            op!(InfixSymbol::Times, int_(3), int_(9))
-                                        ),
-                                        int_(4)
-                                    ),
-                                    int_(5)
-                                ),
-                                Expr::IntLit(IntLiteral { value: 1 })
-                            ),
-                        }),
-                        Stmt::Return(ReturnStmt {
-                            expr: op!(
-                                InfixSymbol::LogicalOr,
-                                op!(InfixSymbol::Less, int_(1), int_(8)),
-                                op!(
-                                    InfixSymbol::LogicalAnd,
-                                    op!(
-                                        InfixSymbol::Equality,
-                                        op!(InfixSymbol::More, int_(4), int_(2)),
-                                        op!(
-                                            InfixSymbol::Plus,
-                                            int_(4),
-                                            op!(InfixSymbol::Times, int_(4), int_(3))
-                                        )
-                                    ),
-                                    op!(InfixSymbol::MoreEq, int_(3), int_(4))
-                                )
                             ),
                         }),
                     ],

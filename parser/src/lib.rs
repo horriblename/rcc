@@ -1,7 +1,7 @@
 use ast::InfixSymbol;
-use lexer::token::{self, Token, TokenType};
+use lexer::token::{Token, TokenType};
 use nom::branch::alt;
-use nom::combinator::{all_consuming, map, value};
+use nom::combinator::{all_consuming, map, opt, value};
 use nom::error::{self, ParseError};
 use nom::multi::many1;
 use nom::sequence::{delimited, preceded, terminated, tuple};
@@ -123,7 +123,10 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Stmt, E> {
     terminated(
-        alt((map(parse_return, ast::Stmt::Return),)),
+        alt((
+            map(parse_return, ast::Stmt::Return),
+            map(parse_declaration, ast::Stmt::Decl),
+        )),
         one(TokenType::Semicolon),
     )(source)
 }
@@ -134,6 +137,23 @@ fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
     map(preceded(one(TokenType::Return), parse_expr), |expr| {
         ast::ReturnStmt { expr }
     })(source)
+}
+
+fn parse_declaration<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::DeclarationStmt, E> {
+    map(
+        tuple((
+            parse_identifier,
+            parse_identifier,
+            opt(preceded(one(TokenType::Equal), parse_expr)),
+        )),
+        |(type_, name, initializer)| ast::DeclarationStmt {
+            type_,
+            name,
+            initializer,
+        },
+    )(source)
 }
 
 fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(

@@ -14,6 +14,7 @@ pub enum TopLevel<'a> {
 #[derive(Debug, PartialEq)]
 pub enum Stmt<'a> {
     Return(ReturnStmt<'a>),
+    Decl(DeclarationStmt<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -51,6 +52,13 @@ pub struct Block<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ReturnStmt<'a> {
     pub expr: Expr<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DeclarationStmt<'a> {
+    pub type_: Identifier<'a>,
+    pub name: Identifier<'a>,
+    pub initializer: Option<Expr<'a>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
