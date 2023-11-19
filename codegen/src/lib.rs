@@ -116,11 +116,17 @@ fn gen_infix_expr(expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
         ast::InfixSymbol::Divide => {
             write_op!(out, "movl %eax, %ebx");
             write_op!(out, "pop %rax");
+            // zero out edx, not exactly sure if I need this
+            write_op!(out, "xorl %edx, %edx");
+
+            // `idivl %ebx` divides the 64-bit int edx:eax (concatenated) by ebx
+            // storing the quotient in eax and remainder in edx
             write_op!(out, "idivl %ebx");
         }
         ast::InfixSymbol::Modulo => {
             write_op!(out, "movl %eax, %ebx");
             write_op!(out, "pop %rax");
+            write_op!(out, "xorl %edx, %edx");
             write_op!(out, "idivl %ebx");
 
             write_op!(out, "movl %edx, %eax");
