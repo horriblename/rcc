@@ -131,13 +131,9 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
 fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::ReturnStmt, E> {
-    map(
-        preceded(
-            one(TokenType::Ident(token::Identifier { name: "return" })),
-            parse_expr,
-        ),
-        |expr| ast::ReturnStmt { expr },
-    )(source)
+    map(preceded(one(TokenType::Return), parse_expr), |expr| {
+        ast::ReturnStmt { expr }
+    })(source)
 }
 
 fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(

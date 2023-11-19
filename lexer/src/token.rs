@@ -14,6 +14,7 @@ impl Token<'_> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType<'a> {
+    // Symbols
     LParen,
     RParen,
     LBracket,
@@ -43,6 +44,11 @@ pub enum TokenType<'a> {
     LessEq,
     More,
     MoreEq,
+
+    // Keywords
+    Return,
+
+    //
     Ident(Identifier<'a>),
     Integer(i32),
 }
