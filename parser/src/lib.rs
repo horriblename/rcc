@@ -208,10 +208,24 @@ fn parse_additive<'a, E: ParseError<ParserIn<'a>>>(
     parse_additive_repeat(source, left)
 }
 
-fn parse_comparator<'a, E: ParseError<ParserIn<'a>>>(
+fn parse_bit_shift<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_additive(source)?;
+
+    infix_parser!(fn parse_bit_shift_repeat(
+        parse_additive::<E>,
+        value(InfixSymbol::BitShiftLeft, one(TokenType::BitShiftLeft)),
+        value(InfixSymbol::BitShiftRight, one(TokenType::BitShiftRight))
+    ));
+
+    parse_bit_shift_repeat(source, left)
+}
+
+fn parse_comparator<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_bit_shift(source)?;
 
     infix_parser!(fn parse_comparator_repeat(
         parse_additive::<E>,

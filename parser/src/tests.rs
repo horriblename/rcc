@@ -149,13 +149,13 @@ fn test_parse_program() {
 
 #[test]
 fn test_op_precedence() {
-    let x = "1<8 | 11 || 4^3 > 2 == 4 + 4*3 & 9 && 3 >= 4";
+    let x = "1<8 | 11 || 4^3 > 2 == 4 + 4*3 & 9 << 1 + 2 && 3 >= 4";
 
     let (_, tokens) = lexer::lex_program_source(x).unwrap();
     let (_, tree) = parse_expr::<VerboseError<ParserIn>>(&tokens).unwrap();
 
     let ans = show_operator_precedence(&tree);
-    let expected = "( ( ( 1 < 8 ) | 11 ) || ( ( 4 ^ ( ( ( 3 > 2 ) == ( 4 + ( 4 * 3 ) ) ) & 9 ) ) && ( 3 >= 4 ) ) )";
+    let expected ="( ( ( 1 < 8 ) | 11 ) || ( ( 4 ^ ( ( ( 3 > 2 ) == ( 4 + ( 4 * 3 ) ) ) & ( 9 << ( 1 + 2 ) ) ) ) && ( 3 >= 4 ) ) )";
     assert_eq!(ans, expected)
 }
 
