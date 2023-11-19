@@ -152,6 +152,36 @@ fn test_bitwise_xor() {
     assert_eq!(exec_file(outname, &[]).status.code(), Some(6));
 }
 
+#[test]
+fn test_bitwise_shiftl() {
+    let program = r#"
+        int main() {
+            return 5 << 3;
+        }
+        "#;
+    let asm_name = "out_bitwise_shiftl_eq.s";
+    let outname = "out_bitwise_shiftl_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(40));
+}
+
+#[test]
+fn test_bitwise_shiftr() {
+    let program = r#"
+        int main() {
+            return 10 >> 2;
+        }
+        "#;
+    let asm_name = "out_bitwise_shiftr_eq.s";
+    let outname = "out_bitwise_shiftr_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(2));
+}
+
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();

@@ -265,7 +265,19 @@ fn gen_infix_expr(state: &mut ProgramState, expr: &ast::InfixExpr, out: &mut imp
             write_op!(out, "pop %rcx"); // eax = right, ecx = left
             write_op!(out, "xor %ecx, %eax");
         }
-        ast::InfixSymbol::BitShiftLeft => todo!(),
-        ast::InfixSymbol::BitShiftRight => todo!(),
+        ast::InfixSymbol::BitShiftLeft => {
+            write_op!(out, "push %rax");
+            gen_expr(state, &expr.right, out);
+            write_op!(out, "movl %eax, %ecx");
+            write_op!(out, "pop %rax"); // eax = left, ecx = right
+            write_op!(out, "shl %ecx, %eax");
+        }
+        ast::InfixSymbol::BitShiftRight => {
+            write_op!(out, "push %rax");
+            gen_expr(state, &expr.right, out);
+            write_op!(out, "movl %eax, %ecx");
+            write_op!(out, "pop %rax"); // eax = left, ecx = right
+            write_op!(out, "shr %ecx, %eax");
+        }
     }
 }
