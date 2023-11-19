@@ -247,5 +247,25 @@ fn gen_infix_expr(state: &mut ProgramState, expr: &ast::InfixExpr, out: &mut imp
             write_op!(out, "setne %al"); // set AL register to 1 iff e2 != 0
             write_label(out, &end_label);
         }
+        ast::InfixSymbol::BitAnd => {
+            write_op!(out, "push %rax");
+            gen_expr(state, &expr.right, out);
+            write_op!(out, "pop %rcx"); // eax = right, ecx = left
+            write_op!(out, "and %ecx, %eax");
+        }
+        ast::InfixSymbol::BitOr => {
+            write_op!(out, "push %rax");
+            gen_expr(state, &expr.right, out);
+            write_op!(out, "pop %rcx"); // eax = right, ecx = left
+            write_op!(out, "or %ecx, %eax");
+        }
+        ast::InfixSymbol::BitXor => {
+            write_op!(out, "push %rax");
+            gen_expr(state, &expr.right, out);
+            write_op!(out, "pop %rcx"); // eax = right, ecx = left
+            write_op!(out, "xor %ecx, %eax");
+        }
+        ast::InfixSymbol::BitShiftLeft => todo!(),
+        ast::InfixSymbol::BitShiftRight => todo!(),
     }
 }

@@ -107,6 +107,51 @@ fn test_logical_and() {
     assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
 }
 
+#[test]
+fn test_bitwise_and() {
+    let program = r#"
+        int main() {
+            return 5 & 3;
+        }
+        "#;
+    let asm_name = "out_bitwise_and_eq.s";
+    let outname = "out_bitwise_and_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(1));
+}
+
+#[test]
+fn test_bitwise_or() {
+    let program = r#"
+        int main() {
+            return 5 | 3;
+        }
+        "#;
+    let asm_name = "out_bitwise_or_eq.s";
+    let outname = "out_bitwise_or_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(7));
+}
+
+#[test]
+fn test_bitwise_xor() {
+    let program = r#"
+        int main() {
+            return 5 ^ 3;
+        }
+        "#;
+    let asm_name = "out_bitwise_xor_eq.s";
+    let outname = "out_bitwise_xor_eq";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(6));
+}
+
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();
