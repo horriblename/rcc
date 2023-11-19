@@ -154,7 +154,9 @@ fn parse_multiplicative<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
-    parse_unary(source)
+    let (source, left) = parse_unary(source)?;
+
+    parse_multiplicative_repeat(source, left)
 }
 
 // additive -> multiplicative ( ('+'|'-') multiplicative )*
@@ -163,26 +165,25 @@ fn parse_additive<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_multiplicative(source)?;
 
-    // left-recursive is so fucking hard so I decided to cheat a bit and use loops :)
-    parse_plus_post(source, left)
+    parse_additive_repeat(source, left)
 }
 
-// repeatedly parses ( ('+'|'-') multiplicative )*
-// and maintains left-associativity
-fn parse_plus_post<'a, E: ParseError<ParserIn<'a>>>(
+// Creates a left-associative infix parser, e.g. '+', '-' etc.
+macro_rules! infix_parser {
+    ($fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
+fn $fn_name<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
     left: ast::Expr<'a>,
 ) -> ParserResult<'a, ast::Expr<'a>, E> {
     let res = tuple((
         alt((
-            value(InfixSymbol::Plus, one(TokenType::Plus)),
-            value(InfixSymbol::Minus, one(TokenType::Minus)),
+            $($symbol_parsers),+
         )),
-        parse_multiplicative::<E>,
+        $child_parser,
     ))(source);
     match res {
         Err(_) => Ok((source, left)),
-        Ok((source, (symbol, right))) => parse_plus_post(
+        Ok((source, (symbol, right))) => $fn_name(
             source,
             ast::Expr::Infix(Box::new(ast::InfixExpr {
                 symbol: mark!(symbol, "symbol is {:?}", symbol),
@@ -192,6 +193,21 @@ fn parse_plus_post<'a, E: ParseError<ParserIn<'a>>>(
         ),
     }
 }
+    };
+}
+
+infix_parser!(parse_additive_repeat(
+    parse_multiplicative::<E>,
+    value(InfixSymbol::Plus, one(TokenType::Plus)),
+    value(InfixSymbol::Minus, one(TokenType::Minus))
+));
+
+infix_parser!(parse_multiplicative_repeat(
+    parse_unary::<E>,
+    value(InfixSymbol::Times, one(TokenType::Asterisk)),
+    value(InfixSymbol::Divide, one(TokenType::Slash)),
+    value(InfixSymbol::Modulo, one(TokenType::Percent))
+));
 
 // there's gotta be a better way right?
 fn one<'a, E: ParseError<ParserIn<'a>>>(
@@ -240,7 +256,7 @@ fn parse_identifier<'a, E: ParseError<ParserIn<'a>>>(
             type_: TokenType::Ident(name),
             ..
         }) => mark!(
-            Ok((&source[1..], ast::Identifier { name })),
+            Ok((&source[1..], ast::Identifier { name: &name })),
             "match! ident {:?}",
             name
         ),

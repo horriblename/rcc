@@ -27,11 +27,32 @@ fn test_parse_program() {
             return ~100;
             return !0;
             return -1;
-            return 1 + 3;
+            return 1 * -2 + 3;
+            return 1 + 2 + 3*9 + 4 + 5 - 1;
         }
         "#;
 
     let (_, tokens) = lex_program(prog.into()).unwrap();
+
+    macro_rules! op {
+        ($symbol:expr, $left:expr, $right:expr) => {{
+            ast::Expr::Infix(Box::new(InfixExpr {
+                symbol: $symbol,
+                left: $left,
+                right: $right,
+            }))
+        }};
+        ($symbol:expr, $operand:expr) => {{
+            ast::Expr::Unary(Box::new(UnaryExpr {
+                symbol: $symbol,
+                expr: $operand,
+            }))
+        }};
+    }
+
+    fn int_<'a>(n: i32) -> Expr<'a> {
+        Expr::IntLit(IntLiteral { value: n })
+    }
 
     let expect = Program {
         children: {
@@ -69,26 +90,32 @@ fn test_parse_program() {
                             })),
                         }),
                         Stmt::Return(ReturnStmt {
-                            expr: Expr::Infix(Box::new(InfixExpr {
-                                symbol: InfixSymbol::Plus,
-                                left: Expr::IntLit(IntLiteral { value: 1 }),
-                                right: Expr::IntLit(IntLiteral { value: 3 }),
-                            })),
+                            expr: op!(
+                                InfixSymbol::Plus,
+                                op!(InfixSymbol::Times, int_(1), op!(UnarySign::Negate, int_(2))),
+                                int_(3)
+                            ),
                         }),
-                        // Stmt::Return(ReturnStmt {
-                        //     expr: Expr::Infix(Box::new(InfixExpr {
-                        //         symbol: InfixSymbol::Plus,
-                        //         left: Expr::Infix(Box::new(InfixExpr {
-                        //             symbol: InfixSymbol::Times,
-                        //             left: Expr::IntLit(IntLiteral { value: 1 }),
-                        //             right: Expr::Unary(Box::new(UnaryExpr {
-                        //                 symbol: UnarySign::Negate,
-                        //                 expr: Expr::IntLit(IntLiteral { value: 2 }),
-                        //             })),
-                        //         })),
-                        //         right: Expr::IntLit(IntLiteral { value: 3 }),
-                        //     })),
-                        // }),
+                        // left associativity
+                        Stmt::Return(ReturnStmt {
+                            expr: op!(
+                                InfixSymbol::Minus,
+                                op!(
+                                    InfixSymbol::Plus,
+                                    op!(
+                                        InfixSymbol::Plus,
+                                        op!(
+                                            InfixSymbol::Plus,
+                                            op!(InfixSymbol::Plus, int_(1), int_(2)),
+                                            op!(InfixSymbol::Times, int_(3), int_(9))
+                                        ),
+                                        int_(4)
+                                    ),
+                                    int_(5)
+                                ),
+                                Expr::IntLit(IntLiteral { value: 1 })
+                            ),
+                        }),
                     ],
                 },
             })]
