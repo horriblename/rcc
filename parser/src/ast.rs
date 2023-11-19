@@ -22,6 +22,7 @@ pub enum Stmt<'a> {
 pub enum Expr<'a> {
     Unary(Box<UnaryExpr<'a>>),
     Infix(Box<InfixExpr<'a>>),
+    Assign(Box<Assignment<'a>>),
     IntLit(IntLiteral),
     Ident(Identifier<'a>),
 }
@@ -102,6 +103,18 @@ pub struct InfixExpr<'a> {
     pub symbol: InfixSymbol,
     pub left: Expr<'a>,
     pub right: Expr<'a>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum AssignSymbol {
+    Equal,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Assignment<'a> {
+    pub symbol: AssignSymbol,
+    pub var: Identifier<'a>,
+    pub value: Expr<'a>,
 }
 
 #[derive(Debug, PartialEq)]

@@ -1,4 +1,4 @@
-use ast::InfixSymbol;
+use ast::{AssignSymbol, InfixSymbol};
 use lexer::token::{Token, TokenType};
 use nom::branch::alt;
 use nom::combinator::{all_consuming, map, opt, value};
@@ -162,7 +162,7 @@ fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
     alt((
-        parse_logical_or,
+        parse_assignment,
         // map(parse_int_literal, ast::Expr::IntLit),
     ))(source)
 }
@@ -332,6 +332,25 @@ fn parse_logical_or<'a, E: ParseError<ParserIn<'a>>>(
     ));
 
     parse_logical_or_repeat(source, left)
+}
+
+fn parse_assignment<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    alt((
+        map(
+            tuple((
+                parse_identifier,
+                value(AssignSymbol::Equal, one(TokenType::Equal)),
+                parse_assignment,
+            )),
+            |(var, symbol, value)| {
+                ast::Expr::Assign(Box::new(ast::Assignment { symbol, var, value }))
+            },
+        ),
+        parse_logical_or,
+    ))(source)
+    .map(|x| mark!(x, "assignment {:?}", x))
 }
 
 // there's gotta be a better way right?

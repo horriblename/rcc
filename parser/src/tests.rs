@@ -6,8 +6,8 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, Block, DeclarationStmt, Expr, FnArg, FnDef, InfixExpr, InfixSymbol, IntLiteral,
-        Program, ReturnStmt, Stmt, TopLevel, UnaryExpr, UnarySign,
+        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, InfixSymbol,
+        IntLiteral, Program, ReturnStmt, Stmt, TopLevel, UnaryExpr, UnarySign,
     },
     parse_expr, parse_program, ParserIn,
 };
@@ -20,14 +20,18 @@ macro_rules! ident_ast {
     }};
 }
 
+fn assign_expr<'a>(symbol: AssignSymbol, var: ast::Identifier<'a>, value: Expr<'a>) -> Expr<'a> {
+    Expr::Assign(Box::new(Assignment { symbol, var, value }))
+}
+
 #[test]
 fn test_parse_program() {
     let prog = r#"
         int main(int argc, char argv) {
             int a;
             int b = ~!-100;
-            -1;
-            return 1 * -2 + 3;
+            c = -1;
+            return a;
         }
         "#;
 
@@ -83,13 +87,13 @@ fn test_parse_program() {
                                 op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int(100)))
                             )),
                         }),
-                        Stmt::Expr(op!(UnarySign::Negate, int(1))),
+                        Stmt::Expr(assign_expr(
+                            AssignSymbol::Equal,
+                            ident_ast!("c"),
+                            op!(UnarySign::Negate, int(1)),
+                        )),
                         Stmt::Return(ReturnStmt {
-                            expr: op!(
-                                InfixSymbol::Plus,
-                                op!(InfixSymbol::Times, int(1), op!(UnarySign::Negate, int(2))),
-                                int(3)
-                            ),
+                            expr: Expr::Ident(ident_ast!("a")),
                         }),
                     ],
                 },
@@ -104,13 +108,16 @@ fn test_parse_program() {
 
 #[test]
 fn test_op_precedence() {
-    let x = "1<8 | 11 || 4^3 > 2 == 4 + 4*3 & 9 << 1 + 2 && 3 >= 4";
+    let x = "a = 1<8 | 11 || 4^3 > 2 == 4 + 4*3 & 9 << 1 + 2 && 3 >= 4";
 
     let (_, tokens) = lexer::lex_program_source(x).unwrap();
-    let (_, tree) = parse_expr::<VerboseError<ParserIn>>(&tokens).unwrap();
+    let (rest, tree) = parse_expr::<VerboseError<ParserIn>>(&tokens).unwrap();
 
     let ans = show_operator_precedence(&tree);
-    let expected ="( ( ( 1 < 8 ) | 11 ) || ( ( 4 ^ ( ( ( 3 > 2 ) == ( 4 + ( 4 * 3 ) ) ) & ( 9 << ( 1 + 2 ) ) ) ) && ( 3 >= 4 ) ) )";
+    let expected ="( a = ( ( ( 1 < 8 ) | 11 ) || ( ( 4 ^ ( ( ( 3 > 2 ) == ( 4 + ( 4 * 3 ) ) ) & ( 9 << ( 1 + 2 ) ) ) ) && ( 3 >= 4 ) ) ) )";
+    dbg!(&ans);
+
+    assert_eq!(rest.len(), 0);
     assert_eq!(ans, expected)
 }
 
@@ -152,6 +159,16 @@ fn show_operator_precedence(expr: &ast::Expr) -> String {
                     InfixSymbol::BitShiftRight => ">>",
                 },
                 &show_operator_precedence(&expr.right)
+            )
+        }
+        Expr::Assign(expr) => {
+            format!(
+                "( {} {} {} )",
+                expr.var.name.name,
+                match expr.symbol {
+                    AssignSymbol::Equal => "=",
+                },
+                &show_operator_precedence(&expr.value),
             )
         }
         Expr::IntLit(n) => format!("{}", n.value),
