@@ -15,6 +15,11 @@ use token::{Token, TokenType};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
+pub fn lex_program_source<'a>(program: &'a str) -> IResult<Span<'a>, Vec<Token<'a>>> {
+    let span = Span::new(program);
+    lex_program(span)
+}
+
 pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
     fn tag_tok<'a>(
         tag_: &'a str,
