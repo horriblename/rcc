@@ -29,7 +29,7 @@ fn test_parse_program() {
             return -1;
             return 1 * -2 + 3;
             return 1 + 2 + 3*9 + 4 + 5 - 1;
-            return 1 < 2 == 4 + 4*3 >= 4;
+            return 1 < 8 || 4 > 2 == 4 + 4*3 && 3 >= 4;
         }
         "#;
 
@@ -119,16 +119,20 @@ fn test_parse_program() {
                         }),
                         Stmt::Return(ReturnStmt {
                             expr: op!(
-                                InfixSymbol::Equality,
-                                op!(InfixSymbol::Less, int_(1), int_(2)),
+                                InfixSymbol::LogicalOr,
+                                op!(InfixSymbol::Less, int_(1), int_(8)),
                                 op!(
-                                    InfixSymbol::MoreEq,
+                                    InfixSymbol::LogicalAnd,
                                     op!(
-                                        InfixSymbol::Plus,
-                                        int_(4),
-                                        op!(InfixSymbol::Times, int_(4), int_(3))
+                                        InfixSymbol::Equality,
+                                        op!(InfixSymbol::More, int_(4), int_(2)),
+                                        op!(
+                                            InfixSymbol::Plus,
+                                            int_(4),
+                                            op!(InfixSymbol::Times, int_(4), int_(3))
+                                        )
                                     ),
-                                    int_(4)
+                                    op!(InfixSymbol::MoreEq, int_(3), int_(4))
                                 )
                             ),
                         }),

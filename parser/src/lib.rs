@@ -118,7 +118,7 @@ fn parse_expr<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     // TODO:
     alt((
-        parse_equality,
+        parse_logical_or,
         // map(parse_int_literal, ast::Expr::IntLit),
     ))(source)
 }
@@ -184,6 +184,22 @@ fn parse_equality<'a, E: ParseError<ParserIn<'a>>>(
     parse_equality_repeat(source, left)
 }
 
+fn parse_logical_and<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_equality(source)?;
+
+    parse_logical_and_repeat(source, left)
+}
+
+fn parse_logical_or<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_logical_and(source)?;
+
+    parse_logical_or_repeat(source, left)
+}
+
 // Creates a left-associative infix parser, e.g. '+', '-' etc.
 macro_rules! infix_parser {
     ($fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
@@ -193,7 +209,7 @@ fn $fn_name<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr<'a>, E> {
     let res = tuple((
         alt((
-            $($symbol_parsers),+
+            $($symbol_parsers),+,
         )),
         $child_parser,
     ))(source);
@@ -237,6 +253,16 @@ infix_parser!(parse_equality_repeat(
     parse_comparator::<E>,
     value(InfixSymbol::Equality, one(TokenType::EqEqual)),
     value(InfixSymbol::NotEq, one(TokenType::BangEqual))
+));
+
+infix_parser!(parse_logical_and_repeat(
+    parse_equality::<E>,
+    value(InfixSymbol::LogicalAnd, one(TokenType::LogicalAnd))
+));
+
+infix_parser!(parse_logical_or_repeat(
+    parse_logical_and::<E>,
+    value(InfixSymbol::LogicalOr, one(TokenType::LogicalOr))
 ));
 
 // there's gotta be a better way right?
