@@ -27,7 +27,7 @@ macro_rules! mark {
 }
 // Creates a left-associative infix parser, e.g. '+', '-' etc.
 macro_rules! infix_parser {
-    ($fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
+    (fn $fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
 fn $fn_name<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
     left: ast::Expr<'a>,
@@ -183,7 +183,7 @@ fn parse_multiplicative<'a, E: ParseError<ParserIn<'a>>>(
     // TODO:
     let (source, left) = parse_unary(source)?;
 
-    infix_parser!(parse_multiplicative_repeat(
+    infix_parser!(fn parse_multiplicative_repeat(
         parse_unary::<E>,
         value(InfixSymbol::Times, one(TokenType::Asterisk)),
         value(InfixSymbol::Divide, one(TokenType::Slash)),
@@ -199,7 +199,7 @@ fn parse_additive<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_multiplicative(source)?;
 
-    infix_parser!(parse_additive_repeat(
+    infix_parser!(fn parse_additive_repeat(
         parse_multiplicative::<E>,
         value(InfixSymbol::Plus, one(TokenType::Plus)),
         value(InfixSymbol::Minus, one(TokenType::Minus))
@@ -213,7 +213,7 @@ fn parse_comparator<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_additive(source)?;
 
-    infix_parser!(parse_comparator_repeat(
+    infix_parser!(fn parse_comparator_repeat(
         parse_additive::<E>,
         value(InfixSymbol::Less, one(TokenType::Less)),
         value(InfixSymbol::LessEq, one(TokenType::LessEq)),
@@ -229,7 +229,7 @@ fn parse_equality<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_comparator(source)?;
 
-    infix_parser!(parse_equality_repeat(
+    infix_parser!(fn parse_equality_repeat(
         parse_comparator::<E>,
         value(InfixSymbol::Equality, one(TokenType::EqEqual)),
         value(InfixSymbol::NotEq, one(TokenType::BangEqual))
@@ -243,7 +243,7 @@ fn parse_logical_and<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_equality(source)?;
 
-    infix_parser!(parse_logical_and_repeat(
+    infix_parser!(fn parse_logical_and_repeat(
         parse_equality::<E>,
         value(InfixSymbol::LogicalAnd, one(TokenType::LogicalAnd))
     ));
@@ -256,7 +256,7 @@ fn parse_logical_or<'a, E: ParseError<ParserIn<'a>>>(
 ) -> ParserResult<'a, ast::Expr, E> {
     let (source, left) = parse_logical_and(source)?;
 
-    infix_parser!(parse_logical_or_repeat(
+    infix_parser!(fn parse_logical_or_repeat(
         parse_logical_and::<E>,
         value(InfixSymbol::LogicalOr, one(TokenType::LogicalOr))
     ));

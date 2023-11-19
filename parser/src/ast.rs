@@ -81,6 +81,11 @@ pub enum InfixSymbol {
     NotEq,
     LogicalAnd,
     LogicalOr,
+    BitAnd,
+    BitOr,
+    BitXor,
+    BitShiftLeft,
+    BitShiftRight,
 }
 
 #[derive(Debug, PartialEq)]
