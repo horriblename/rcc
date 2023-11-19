@@ -1,6 +1,6 @@
-use std::process::{self};
-
 use crate::codegen;
+use nom_locate::LocatedSpan;
+use std::process::{self};
 
 #[test]
 fn test_code_gen() {
@@ -12,12 +12,12 @@ fn test_code_gen() {
     let asm_name = "out.s";
     let outname = "out";
 
-    gen_code(program, asm_name);
+    gen_code(program.into(), asm_name);
     compile(asm_name, outname);
     assert_eq!(exec_file(outname, &[]).status.code(), Some(2));
 }
 
-fn gen_code(program: &str, asm_name: &str) {
+fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();
 

@@ -9,3 +9,4 @@ edition = "2021"
 lexer = {path = "../lexer"}
 parser = {path = "../parser"}
 nom = "7.1.3"
+nom_locate = "4.2.0"
