@@ -105,6 +105,7 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         ast::Stmt::Expr(_) => {
             todo!()
         }
+        ast::Stmt::If(_) => todo!(),
     };
 }
 
