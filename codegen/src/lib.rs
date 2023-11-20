@@ -59,14 +59,9 @@ fn codegen_(state: &mut ProgramState, program: &ast::Program, out: &mut impl std
 fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::io::Write) {
     writeln_!(out, "{}:", fndef.name.name.name);
     // push old bp
-    write_op!(out, "pushq %rbp");
+    write_op!(out, "push %rbp");
     // update bp to old sp
     write_op!(out, "movq %rsp, %rbp");
-    // update sp
-    write_op!(out, "subq $8, %rsp");
-    // align the stack pointer to a 16-byte boundary.
-    // apparently common for performance
-    write_op!(out, "andq $-16, %rsp");
     for stmt in &fndef.body.body {
         gen_stmt(state, &stmt, out);
     }
