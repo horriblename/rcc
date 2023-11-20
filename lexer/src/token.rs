@@ -30,7 +30,6 @@ pub enum TokenType<'a> {
     Minus,
     Tilde,
     Exclamation,
-    Equal,
     LogicalAnd,
     BitAnd,
     BitOr,
@@ -44,6 +43,18 @@ pub enum TokenType<'a> {
     LessEq,
     More,
     MoreEq,
+
+    Equal,
+    PlusEq,
+    MinusEq,
+    SlashEq,
+    AsteriskEq,
+    PercentEq,
+    LessLessEq,
+    MoreMoreEq,
+    AmpersandEq,
+    PipeEq,
+    CaretEq,
 
     // Keywords
     Return,

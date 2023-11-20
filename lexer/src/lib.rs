@@ -36,6 +36,8 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
         alt((
             alt((tag_tok("return", TokenType::Return),)),
             alt((
+                tag_tok("<<=", TokenType::LessLessEq),
+                tag_tok(">>=", TokenType::MoreMoreEq),
                 tag_tok("&&", TokenType::LogicalAnd),
                 tag_tok("||", TokenType::LogicalOr),
                 tag_tok("==", TokenType::EqEqual),
@@ -44,6 +46,14 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
                 tag_tok(">=", TokenType::MoreEq),
                 tag_tok("<<", TokenType::BitShiftLeft),
                 tag_tok(">>", TokenType::BitShiftRight),
+                tag_tok("+=", TokenType::PlusEq),
+                tag_tok("-=", TokenType::MinusEq),
+                tag_tok("/=", TokenType::SlashEq),
+                tag_tok("*=", TokenType::AsteriskEq),
+                tag_tok("%=", TokenType::PercentEq),
+                tag_tok("&=", TokenType::AmpersandEq),
+                tag_tok("|=", TokenType::PipeEq),
+                tag_tok("^=", TokenType::CaretEq),
             )),
             alt((
                 tag_tok("(", TokenType::LParen),
