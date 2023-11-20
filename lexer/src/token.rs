@@ -58,6 +58,8 @@ pub enum TokenType<'a> {
 
     // Keywords
     Return,
+    If,
+    Else,
 
     //
     Ident(Identifier<'a>),

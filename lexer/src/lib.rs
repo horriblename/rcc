@@ -34,7 +34,11 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
         multispace0,
         // one `alt` can only hold 21 options
         alt((
-            alt((tag_tok("return", TokenType::Return),)),
+            alt((
+                tag_tok("return", TokenType::Return),
+                tag_tok("if", TokenType::If),
+                tag_tok("else", TokenType::Else),
+            )),
             alt((
                 tag_tok("<<=", TokenType::LessLessEq),
                 tag_tok(">>=", TokenType::MoreMoreEq),
