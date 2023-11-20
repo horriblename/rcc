@@ -43,7 +43,7 @@ fn $fn_name<'a, E: ParseError<ParserIn<'a>>>(
         Ok((source, (symbol, right))) => $fn_name(
             source,
             ast::Expr::Infix(Box::new(ast::InfixExpr {
-                symbol: mark!(symbol, "symbol is {:?}", symbol),
+                symbol,
                 left,
                 right,
             })),
@@ -185,7 +185,6 @@ fn parse_unary<'a, E: ParseError<ParserIn<'a>>>(
             ast::Expr::Unary(Box::new(ast::UnaryExpr { symbol, expr }))
         }),
     ))(source)
-    .map_err(|x| mark!(x, "unary failed"))
 }
 
 fn parse_int_literal<'a, E: ParseError<ParserIn<'a>>>(
@@ -350,7 +349,6 @@ fn parse_assignment<'a, E: ParseError<ParserIn<'a>>>(
         ),
         parse_logical_or,
     ))(source)
-    .map(|x| mark!(x, "assignment {:?}", x))
 }
 
 // there's gotta be a better way right?
