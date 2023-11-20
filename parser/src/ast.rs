@@ -15,6 +15,7 @@ pub enum TopLevel<'a> {
 pub enum Stmt<'a> {
     Return(ReturnStmt<'a>),
     Decl(DeclarationStmt<'a>),
+    If(Box<IfStmt<'a>>),
     Expr(Expr<'a>),
 }
 
@@ -61,6 +62,13 @@ pub struct DeclarationStmt<'a> {
     pub type_: Identifier<'a>,
     pub name: Identifier<'a>,
     pub initializer: Option<Expr<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IfStmt<'a> {
+    pub cond: Expr<'a>,
+    pub body: Stmt<'a>,
+    pub alternative: Option<Stmt<'a>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -6,8 +6,9 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, InfixSymbol,
-        IntLiteral, Program, ReturnStmt, Stmt, TopLevel, UnaryExpr, UnarySign,
+        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, IfStmt,
+        InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt, Stmt, TopLevel, UnaryExpr,
+        UnarySign,
     },
     parse_expr, parse_program, ParserIn,
 };
@@ -31,6 +32,22 @@ macro_rules! assign {
             var: ident_ast!($var),
             value: $value,
         })))
+    }};
+}
+
+macro_rules! op {
+    ($symbol:expr, $left:expr, $right:expr) => {{
+        ast::Expr::Infix(Box::new(InfixExpr {
+            symbol: $symbol,
+            left: $left,
+            right: $right,
+        }))
+    }};
+    ($symbol:expr, $operand:expr) => {{
+        ast::Expr::Unary(Box::new(UnaryExpr {
+            symbol: $symbol,
+            expr: $operand,
+        }))
     }};
 }
 
@@ -58,22 +75,6 @@ fn test_parse_program() {
         "#;
 
     let (_, tokens) = lex_program(prog.into()).unwrap();
-
-    macro_rules! op {
-        ($symbol:expr, $left:expr, $right:expr) => {{
-            ast::Expr::Infix(Box::new(InfixExpr {
-                symbol: $symbol,
-                left: $left,
-                right: $right,
-            }))
-        }};
-        ($symbol:expr, $operand:expr) => {{
-            ast::Expr::Unary(Box::new(UnaryExpr {
-                symbol: $symbol,
-                expr: $operand,
-            }))
-        }};
-    }
 
     fn int<'a>(n: i32) -> Expr<'a> {
         Expr::IntLit(IntLiteral { value: n })
@@ -128,6 +129,51 @@ fn test_parse_program() {
                             expr: Expr::Ident(ident_ast!("a")),
                         }),
                     ],
+                },
+            })]
+        },
+    };
+
+    let (_, got) = parse_program::<VerboseError<ParserIn>>(&tokens).unwrap();
+
+    assert_eq!(got, expect);
+}
+
+#[test]
+fn test_parse_if() {
+    let prog = r#"
+        int main() {
+            if (a == 3)
+                return 2;
+            else if (1)
+                return 4;
+            else
+                2;
+        }
+        "#;
+
+    let (_, tokens) = lex_program(prog.into()).unwrap();
+
+    fn int<'a>(n: i32) -> Expr<'a> {
+        Expr::IntLit(IntLiteral { value: n })
+    }
+
+    let expect = Program {
+        children: {
+            vec![TopLevel::FnDef(FnDef {
+                return_type: ident_ast!("int"),
+                name: ident_ast!("main"),
+                args: vec![],
+                body: Block {
+                    body: vec![Stmt::If(Box::new(IfStmt {
+                        cond: op!(InfixSymbol::Equality, Expr::Ident(ident_ast!("a")), int(3)),
+                        body: Stmt::Return(ReturnStmt { expr: int(2) }),
+                        alternative: Some(Stmt::If(Box::new(IfStmt {
+                            cond: int(1),
+                            body: (Stmt::Return(ReturnStmt { expr: int(4) })),
+                            alternative: Some(Stmt::Expr(int(2))),
+                        }))),
+                    }))],
                 },
             })]
         },

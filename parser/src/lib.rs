@@ -122,14 +122,21 @@ fn parse_stmts<'a, E: ParseError<ParserIn<'a>>>(
 fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Stmt, E> {
-    terminated(
-        alt((
-            map(parse_return, ast::Stmt::Return),
-            map(parse_declaration, ast::Stmt::Decl),
-            map(parse_expr, ast::Stmt::Expr),
-        )),
-        one(TokenType::Semicolon),
-    )(source)
+    alt((
+        map(
+            terminated(parse_return, one(TokenType::Semicolon)),
+            ast::Stmt::Return,
+        ),
+        map(
+            terminated(parse_declaration, one(TokenType::Semicolon)),
+            ast::Stmt::Decl,
+        ),
+        map(parse_if_stmt, |stmt| ast::Stmt::If(Box::new(stmt))),
+        map(
+            terminated(parse_expr, one(TokenType::Semicolon)),
+            ast::Stmt::Expr,
+        ),
+    ))(source)
 }
 
 fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
@@ -154,6 +161,26 @@ fn parse_declaration<'a, E: ParseError<ParserIn<'a>>>(
             name,
             initializer,
         },
+    )(source)
+}
+
+fn parse_if_stmt<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::IfStmt, E> {
+    preceded(
+        one(TokenType::If),
+        map(
+            tuple((
+                delimited(one(TokenType::LParen), parse_expr, one(TokenType::RParen)),
+                parse_stmt,
+                opt(preceded(one(TokenType::Else), parse_stmt)),
+            )),
+            |(cond, body, alternative)| ast::IfStmt {
+                cond,
+                body,
+                alternative,
+            },
+        ),
     )(source)
 }
 
