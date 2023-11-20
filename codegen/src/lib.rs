@@ -129,13 +129,20 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
         ast::Expr::Infix(expr) => gen_infix_expr(state, expr, out),
         ast::Expr::Unary(expr) => gen_unary_expr(state, expr, out),
         ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movl ${}, %eax", value),
-        ast::Expr::Assign(assignment) => {
-            let offset = scope::find_any(&state.scopes, &assignment.var.name.name)
+        ast::Expr::Assign(expr) => gen_assignment(state, expr, out),
+    }
+}
+
+fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut impl std::io::Write) {
+    match expr.symbol {
+        ast::AssignSymbol::Equal => {
+            let offset = scope::find_any(&state.scopes, &expr.var.name.name)
                 .expect("undeclared variable.")
                 .offset;
-            gen_expr(state, &assignment.value, out);
+            gen_expr(state, &expr.value, out);
             write_op!(out, "movl %eax, {}(%rbp)", offset);
         }
+        _ => todo!(),
     }
 }
 
