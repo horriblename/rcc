@@ -59,7 +59,7 @@ fn test_main() {
 fn test_all() {
     let source = "
         () [ ] { } ; , * / % + - ~ ! && || == != < <= > >= & | ^ << >> =
-        += -= /= *= %= <<= >>= &= |= ^= if else";
+        += -= /= *= %= <<= >>= &= |= ^= if else ? :";
 
     let expect = [
         TokenType::LParen,
@@ -103,6 +103,8 @@ fn test_all() {
         TokenType::CaretEq,
         TokenType::If,
         TokenType::Else,
+        TokenType::Question,
+        TokenType::Colon,
     ];
 
     check_tokens(source, &expect)

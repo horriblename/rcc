@@ -58,6 +58,8 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
                 tag_tok("&=", TokenType::AmpersandEq),
                 tag_tok("|=", TokenType::PipeEq),
                 tag_tok("^=", TokenType::CaretEq),
+                tag_tok("?", TokenType::Question),
+                tag_tok(":", TokenType::Colon),
             )),
             alt((
                 tag_tok("(", TokenType::LParen),

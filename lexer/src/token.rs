@@ -43,6 +43,8 @@ pub enum TokenType<'a> {
     LessEq,
     More,
     MoreEq,
+    Question,
+    Colon,
 
     Equal,
     PlusEq,
