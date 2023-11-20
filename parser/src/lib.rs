@@ -340,7 +340,19 @@ fn parse_assignment<'a, E: ParseError<ParserIn<'a>>>(
         map(
             tuple((
                 parse_identifier,
-                value(AssignSymbol::Equal, one(TokenType::Equal)),
+                alt((
+                    value(AssignSymbol::Equal, one(TokenType::Equal)),
+                    value(AssignSymbol::PlusEq, one(TokenType::PlusEq)),
+                    value(AssignSymbol::MinusEq, one(TokenType::MinusEq)),
+                    value(AssignSymbol::TimesEq, one(TokenType::AsteriskEq)),
+                    value(AssignSymbol::DivideEq, one(TokenType::SlashEq)),
+                    value(AssignSymbol::ModuloEq, one(TokenType::PercentEq)),
+                    value(AssignSymbol::ShiftLeftEq, one(TokenType::LessLessEq)),
+                    value(AssignSymbol::ShiftRightEq, one(TokenType::MoreMoreEq)),
+                    value(AssignSymbol::AndEq, one(TokenType::AmpersandEq)),
+                    value(AssignSymbol::OrEq, one(TokenType::PipeEq)),
+                    value(AssignSymbol::XorEq, one(TokenType::CaretEq)),
+                )),
                 parse_assignment,
             )),
             |(var, symbol, value)| {

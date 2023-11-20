@@ -108,6 +108,16 @@ pub struct InfixExpr<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssignSymbol {
     Equal,
+    PlusEq,
+    MinusEq,
+    DivideEq,
+    TimesEq,
+    ModuloEq,
+    ShiftLeftEq,
+    ShiftRightEq,
+    AndEq,
+    OrEq,
+    XorEq,
 }
 
 #[derive(Debug, PartialEq)]

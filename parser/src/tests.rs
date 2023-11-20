@@ -24,13 +24,35 @@ fn assign_expr<'a>(symbol: AssignSymbol, var: ast::Identifier<'a>, value: Expr<'
     Expr::Assign(Box::new(Assignment { symbol, var, value }))
 }
 
+macro_rules! assign {
+    ($symbol: expr, $var: expr, $value: expr) => {{
+        Stmt::Expr(Expr::Assign(Box::new(Assignment {
+            symbol: $symbol,
+            var: ident_ast!($var),
+            value: $value,
+        })))
+    }};
+}
+
 #[test]
 fn test_parse_program() {
+    use AssignSymbol::*;
+
     let prog = r#"
         int main(int argc, char argv) {
             int a;
             int b = ~!-100;
             c = -1;
+            a += 1;
+            a -= 1;
+            a /= 1;
+            a *= 1;
+            a %= 1;
+            a <<= 1;
+            a >>= 1;
+            a &= 1;
+            a |= 1;
+            a ^= 1;
             return a;
         }
         "#;
@@ -92,6 +114,16 @@ fn test_parse_program() {
                             ident_ast!("c"),
                             op!(UnarySign::Negate, int(1)),
                         )),
+                        assign!(PlusEq, "a", int(1)),
+                        assign!(MinusEq, "a", int(1)),
+                        assign!(DivideEq, "a", int(1)),
+                        assign!(TimesEq, "a", int(1)),
+                        assign!(ModuloEq, "a", int(1)),
+                        assign!(ShiftLeftEq, "a", int(1)),
+                        assign!(ShiftRightEq, "a", int(1)),
+                        assign!(AndEq, "a", int(1)),
+                        assign!(OrEq, "a", int(1)),
+                        assign!(XorEq, "a", int(1)),
                         Stmt::Return(ReturnStmt {
                             expr: Expr::Ident(ident_ast!("a")),
                         }),
@@ -167,6 +199,16 @@ fn show_operator_precedence(expr: &ast::Expr) -> String {
                 expr.var.name.name,
                 match expr.symbol {
                     AssignSymbol::Equal => "=",
+                    AssignSymbol::PlusEq => todo!(),
+                    AssignSymbol::MinusEq => todo!(),
+                    AssignSymbol::DivideEq => todo!(),
+                    AssignSymbol::TimesEq => todo!(),
+                    AssignSymbol::ModuloEq => todo!(),
+                    AssignSymbol::ShiftLeftEq => todo!(),
+                    AssignSymbol::ShiftRightEq => todo!(),
+                    AssignSymbol::AndEq => todo!(),
+                    AssignSymbol::OrEq => todo!(),
+                    AssignSymbol::XorEq => todo!(),
                 },
                 &show_operator_precedence(&expr.value),
             )
