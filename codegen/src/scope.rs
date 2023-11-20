@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 pub struct VarInfo {
+    /// The offset from base pointer, in units of words.
+    /// use `format!("moveq {}(%rbp), %rax", -offset * 8)` to load this var into RAX on a 64-bit
+    /// machine (word size = 8 bytes)
     pub offset: u64,
 }
 
