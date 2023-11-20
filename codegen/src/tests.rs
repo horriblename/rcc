@@ -182,6 +182,22 @@ fn test_bitwise_shiftr() {
     assert_eq!(exec_file(outname, &[]).status.code(), Some(2));
 }
 
+#[test]
+fn test_declaration() {
+    let program = r#"
+        int main() {
+            int a = 2;
+            return a;
+        }
+        "#;
+    let asm_name = "out_declaration.s";
+    let outname = "out_declaration";
+
+    gen_code(program.into(), asm_name);
+    compile(asm_name, outname);
+    assert_eq!(exec_file(outname, &[]).status.code(), Some(2));
+}
+
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
     let (_, ast) = parser::parse_program::<nom::error::Error<_>>(&tokens).unwrap();
