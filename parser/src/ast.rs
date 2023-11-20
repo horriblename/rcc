@@ -23,6 +23,7 @@ pub enum Stmt<'a> {
 pub enum Expr<'a> {
     Unary(Box<UnaryExpr<'a>>),
     Infix(Box<InfixExpr<'a>>),
+    Conditional(Box<ConditionalExpr<'a>>),
     Assign(Box<Assignment<'a>>),
     IntLit(IntLiteral),
     Ident(Identifier<'a>),
@@ -111,6 +112,13 @@ pub struct InfixExpr<'a> {
     pub symbol: InfixSymbol,
     pub left: Expr<'a>,
     pub right: Expr<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ConditionalExpr<'a> {
+    pub cond: Expr<'a>,
+    pub succ: Expr<'a>,
+    pub fail: Expr<'a>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

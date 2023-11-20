@@ -360,6 +360,30 @@ fn parse_logical_or<'a, E: ParseError<ParserIn<'a>>>(
     parse_logical_or_repeat(source, left)
 }
 
+fn parse_conditional<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_logical_or(source)?;
+    let res = tuple((
+        one(TokenType::Question),
+        parse_expr::<E>,
+        one(TokenType::Colon),
+        parse_conditional::<E>,
+    ))(source);
+
+    match res {
+        Ok((source, (_, succ, _, fail))) => Ok((
+            source,
+            ast::Expr::Conditional(Box::new(ast::ConditionalExpr {
+                cond: left,
+                succ,
+                fail,
+            })),
+        )),
+        _ => Ok((source, left)),
+    }
+}
+
 fn parse_assignment<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
@@ -386,7 +410,7 @@ fn parse_assignment<'a, E: ParseError<ParserIn<'a>>>(
                 ast::Expr::Assign(Box::new(ast::Assignment { symbol, var, value }))
             },
         ),
-        parse_logical_or,
+        parse_conditional,
     ))(source)
 }
 
