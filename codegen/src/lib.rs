@@ -141,7 +141,7 @@ fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut im
                 .expect("undeclared variable.")
                 .offset;
             gen_expr(state, &expr.value, out);
-            write_op!(out, "movl %eax, {}(%rbp)", offset);
+            write_op!(out, "movl %eax, -{:x}(%rbp)", offset * 8);
         }
         _ => todo!(),
     }
