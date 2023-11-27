@@ -113,7 +113,7 @@ fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std:
         .alternative
         .as_ref()
         .map(|_| state.gen_unique_label("alternative"));
-    let post_label = state.gen_unique_label("post_conditional");
+    let post_label = state.gen_unique_label("post_if");
 
     write_op!(out, "cmpl $0, %eax");
     // jump if condition == 0 (condition evaluates to false)
@@ -155,8 +155,33 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
         ast::Expr::Unary(expr) => gen_unary_expr(state, expr, out),
         ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movl ${}, %eax", value),
         ast::Expr::Assign(expr) => gen_assignment(state, expr, out),
-        ast::Expr::Conditional(_) => todo!(),
+        ast::Expr::Conditional(expr) => gen_conditional(state, expr, out),
     }
+}
+
+// e1 ? e2 : e3
+fn gen_conditional(
+    state: &mut ProgramState,
+    expr: &ast::ConditionalExpr,
+    out: &mut impl std::io::Write,
+) {
+    gen_expr(state, &expr.cond, out);
+    let alt_label = state.gen_unique_label("alternative");
+    let post_label = state.gen_unique_label("post_conditional");
+
+    write_op!(out, "cmpl $0, %eax");
+    // jump if e1 == 0
+    write_op!(out, "je {}", alt_label);
+
+    // e1 is true, evaluate e2
+    gen_expr(state, &expr.succ, out);
+    write_op!(out, "jmp {}", &post_label);
+
+    // evaluate e3
+    write_label(out, &alt_label);
+    gen_expr(state, &expr.fail, out);
+
+    write_label(out, &post_label);
 }
 
 fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut impl std::io::Write) {
