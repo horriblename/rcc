@@ -22,8 +22,8 @@ fn test_main() {
                 return ~100;
                 return !0;
                 return -2;
-            }
-            "#;
+                1 // return comment;
+            } // test "#;
 
     let expect = [
         TokenType::Ident(Identifier { name: "int" }),
@@ -49,6 +49,7 @@ fn test_main() {
         TokenType::Minus,
         TokenType::Integer(2),
         TokenType::Semicolon,
+        TokenType::Integer(1),
         TokenType::RBrace,
     ];
 

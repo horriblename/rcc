@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
-    character::complete::{multispace0, satisfy},
-    combinator::{all_consuming, map, peek},
+    bytes::complete::{tag, take_until, take_while},
+    character::complete::{multispace1, satisfy},
+    combinator::{all_consuming, map, peek, value},
     multi::many0,
-    sequence::{delimited, terminated, tuple},
+    sequence::{delimited, pair, terminated, tuple},
     IResult,
 };
 
@@ -31,7 +31,7 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
     }
 
     all_consuming(many0(delimited(
-        multispace0,
+        lex_ignored,
         // one `alt` can only hold 21 options
         alt((
             alt((
@@ -90,8 +90,26 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
             ),
             lex_identifier,
         )),
-        multispace0,
+        lex_ignored,
     )))(program)
+}
+
+// whitespace and comments can appear anywhere and are ignored
+fn lex_ignored<'a>(source: Span<'a>) -> IResult<Span<'a>, ()> {
+    value(
+        (),
+        many0(alt((
+            value((), multispace1),
+            value(
+                (),
+                pair(
+                    tag("//"),
+                    // line comment is terminated by newline or EOF
+                    alt((take_until("\n"), take_while(|_| true))),
+                ),
+            ),
+        ))),
+    )(source)
 }
 
 fn lex_identifier<'a>(source: Span<'a>) -> IResult<Span<'a>, Token> {
