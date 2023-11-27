@@ -25,6 +25,16 @@ fn assign_expr<'a>(symbol: AssignSymbol, var: ast::Identifier<'a>, value: Expr<'
     Expr::Assign(Box::new(Assignment { symbol, var, value }))
 }
 
+fn block<'a>(expr: Vec<Stmt<'a>>) -> Block<'a> {
+    Block { body: expr }
+}
+
+macro_rules! block_stmt {
+    [$($stmts: expr),*] => {{
+        Stmt::Block(Box::new(Block {body: vec![$($stmts),*]}))
+    }};
+}
+
 macro_rules! assign {
     ($symbol: expr, $var: expr, $value: expr) => {{
         Stmt::Expr(Expr::Assign(Box::new(Assignment {
@@ -67,9 +77,11 @@ fn test_parse_program() {
             a %= 1;
             a <<= 1;
             a >>= 1;
-            a &= 1;
-            a |= 1;
-            a ^= 1;
+            {
+                a &= 1;
+                a |= 1;
+                a ^= 1;
+            }
             return a;
         }
         "#;
@@ -122,9 +134,11 @@ fn test_parse_program() {
                         assign!(ModuloEq, "a", int(1)),
                         assign!(ShiftLeftEq, "a", int(1)),
                         assign!(ShiftRightEq, "a", int(1)),
-                        assign!(AndEq, "a", int(1)),
-                        assign!(OrEq, "a", int(1)),
-                        assign!(XorEq, "a", int(1)),
+                        block_stmt![
+                            assign!(AndEq, "a", int(1)),
+                            assign!(OrEq, "a", int(1)),
+                            assign!(XorEq, "a", int(1))
+                        ],
                         Stmt::Return(ReturnStmt {
                             expr: Expr::Ident(ident_ast!("a")),
                         }),

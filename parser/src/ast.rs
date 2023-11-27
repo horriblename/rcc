@@ -17,6 +17,7 @@ pub enum Stmt<'a> {
     Decl(DeclarationStmt<'a>),
     If(Box<IfStmt<'a>>),
     Expr(Expr<'a>),
+    Block(Box<Block<'a>>),
 }
 
 #[derive(Debug, PartialEq)]

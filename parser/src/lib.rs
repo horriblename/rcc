@@ -136,6 +136,7 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
             terminated(parse_expr, one(TokenType::Semicolon)),
             ast::Stmt::Expr,
         ),
+        map(parse_block, |block| ast::Stmt::Block(Box::new(block))),
     ))(source)
 }
 
