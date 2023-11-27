@@ -42,6 +42,7 @@ test_c_file!(bitwise_xor, "tests/bitwise_xor.c");
 test_c_file!(bitwise_shiftl, "tests/bitwise_shiftl.c");
 test_c_file!(bitwise_shiftr, "tests/bitwise_shiftr.c");
 test_c_file!(declaration, "tests/declaration.c");
+test_c_file!(assignment, "tests/assignment.c");
 
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
