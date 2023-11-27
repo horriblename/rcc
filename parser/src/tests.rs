@@ -186,13 +186,13 @@ fn test_parse_if() {
 
 #[test]
 fn test_op_precedence() {
-    let x = "a = 1<8 | 11 || 4^3 > 2 ? a == 4 + 4*3 & 10 : 9 << 1 + 2 && 3 >= 4";
+    let x = "a = b = 1<8 | 11 || 4^3 > 2 ? a == 4 + 4*3 & 10 : 9 << 1 + 2 && 3 >= 4";
 
     let (_, tokens) = lexer::lex_program_source(x).unwrap();
     let (rest, tree) = parse_expr::<VerboseError<ParserIn>>(&tokens).unwrap();
 
     let ans = show_operator_precedence(&tree);
-    let expected ="( a = ( ( ( ( 1 < 8 ) | 11 ) || ( 4 ^ ( 3 > 2 ) ) ) ? ( ( a == ( 4 + ( 4 * 3 ) ) ) & 10 ) : ( ( 9 << ( 1 + 2 ) ) && ( 3 >= 4 ) ) ) )";
+    let expected ="( a = ( b = ( ( ( ( 1 < 8 ) | 11 ) || ( 4 ^ ( 3 > 2 ) ) ) ? ( ( a == ( 4 + ( 4 * 3 ) ) ) & 10 ) : ( ( 9 << ( 1 + 2 ) ) && ( 3 >= 4 ) ) ) ) )";
     dbg!(&ans);
 
     assert_eq!(rest.len(), 0);
