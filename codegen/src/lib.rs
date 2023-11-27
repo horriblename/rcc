@@ -1,7 +1,6 @@
 use parser::ast::{self, DeclarationStmt};
-use scope::ScopeStack;
 
-use crate::scope::Scope;
+use crate::scope::FnIndex;
 
 mod scope;
 #[cfg(test)]
@@ -27,7 +26,8 @@ fn write_label(out: &mut impl std::io::Write, label: &str) {
 
 struct ProgramState {
     unique_label_counter: u32,
-    scopes: ScopeStack,
+    // global: Scope,
+    scopes: Option<FnIndex>,
 }
 
 impl ProgramState {
@@ -43,7 +43,7 @@ impl ProgramState {
 pub fn codegen(program: &ast::Program, out: &mut impl std::io::Write) {
     let mut state = ProgramState {
         unique_label_counter: 0,
-        scopes: vec![],
+        scopes: None,
     };
     codegen_(&mut state, program, out);
 }
@@ -63,7 +63,7 @@ fn codegen_(state: &mut ProgramState, program: &ast::Program, out: &mut impl std
 }
 
 fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::io::Write) {
-    state.scopes.push(Scope::new());
+    state.scopes = Some(FnIndex::new());
 
     writeln_!(out, "{}:", fndef.name.name.name);
     // push old bp
@@ -78,7 +78,7 @@ fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::
     write_op!(out, "popq %rbp");
     write_op!(out, "ret");
 
-    state.scopes.pop();
+    state.scopes.take();
 }
 
 fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::Write) {
@@ -88,7 +88,12 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         ast::Stmt::Decl(DeclarationStmt {
             name, initializer, ..
         }) => {
-            match scope::declare(&mut state.scopes, name.name.name.to_string(), 32) {
+            match state
+                .scopes
+                .as_mut()
+                .expect("TODO")
+                .declare(name.name.name.to_string(), 32)
+            {
                 Err(scope::Error::EmptyScopeStack) => unreachable!("this is a bug"),
                 // TODO: better error message
                 Err(scope::Error::VariableRedeclared) => panic!("variable redeclared"),
@@ -147,8 +152,12 @@ fn gen_return_stmt(
 fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::Write) {
     match expr {
         ast::Expr::Ident(var) => {
-            let info =
-                scope::find_any(&mut state.scopes, &var.name.name).expect("undeclared variable.");
+            let info = state
+                .scopes
+                .as_ref()
+                .expect("TODO")
+                .find_any(&var.name.name)
+                .expect("undeclared variable.");
             write_op!(out, "movl -{:x}(%rbp), %eax", info.offset * 8);
         }
         ast::Expr::Infix(expr) => gen_infix_expr(state, expr, out),
@@ -187,7 +196,11 @@ fn gen_conditional(
 fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut impl std::io::Write) {
     match expr.symbol {
         ast::AssignSymbol::Equal => {
-            let offset = scope::find_any(&state.scopes, &expr.var.name.name)
+            let offset = state
+                .scopes
+                .as_ref()
+                .expect("TODO")
+                .find_any(&expr.var.name.name)
                 .expect("undeclared variable.")
                 .offset;
             gen_expr(state, &expr.value, out);

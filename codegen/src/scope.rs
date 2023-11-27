@@ -7,36 +7,14 @@ pub struct VarInfo {
     pub offset: u64,
 }
 
-pub struct Scope {
+/// Stuff we need to keep track of when generating function code
+pub struct FnIndex {
     /// in the unit of 'words'
     stack_index: u64,
-    vars: HashMap<String, VarInfo>,
+    vars: Vec<Scope>,
 }
 
-impl Scope {
-    pub fn new() -> Scope {
-        Scope {
-            stack_index: 1,
-            vars: HashMap::new(),
-        }
-    }
-}
-
-pub type ScopeStack = Vec<Scope>;
-
-pub fn find_any<'a>(scopes: &'a ScopeStack, var: &str) -> Option<&'a VarInfo> {
-    for s in scopes {
-        if let x @ Some(_) = s.vars.get(var) {
-            return x;
-        }
-    }
-
-    None
-}
-
-pub fn top_has(scopes: &ScopeStack, var: &str) -> bool {
-    scopes.last().is_some_and(|x| x.vars.contains_key(var))
-}
+pub type Scope = HashMap<String, VarInfo>;
 
 #[derive(Debug)]
 pub enum Error {
@@ -44,24 +22,37 @@ pub enum Error {
     VariableRedeclared,
 }
 
-/// declare a new variable in the top-most scope, if var already exists an error is returned.
-/// Returns the offset from the base pointer as number of words, which can be directly used in
-/// mov as `format!("movq %rax, {offset}(%ebp)")`
-pub fn declare(scopes: &mut ScopeStack, var: String, size_words: u64) -> Result<u64, Error> {
-    if let Some(scope) = scopes.last_mut() {
-        if scope.vars.contains_key(&var) {
-            return Err(Error::VariableRedeclared);
+impl FnIndex {
+    pub fn new() -> FnIndex {
+        FnIndex {
+            stack_index: 1,
+            vars: vec![Scope::new()],
         }
-
-        scope.vars.insert(
-            var,
-            VarInfo {
-                offset: scope.stack_index,
-            },
-        );
-        let offset = scope.stack_index;
-        scope.stack_index += size_words;
-        return Ok(offset);
     }
-    return Err(Error::EmptyScopeStack);
+
+    pub fn find_any<'a>(&'a self, var: &str) -> Option<&'a VarInfo> {
+        self.vars.iter().find_map(move |scope| scope.get(var))
+    }
+
+    /// declare a new variable in the top-most scope, if var already exists an error is returned.
+    /// Returns the offset from the base pointer as number of words, which can be directly used in
+    /// mov as `format!("movq %rax, {offset}(%ebp)")`
+    pub fn declare(&mut self, var: String, size_words: u64) -> Result<u64, Error> {
+        if let Some(scope) = self.vars.last_mut() {
+            if scope.contains_key(&var) {
+                return Err(Error::VariableRedeclared);
+            }
+
+            scope.insert(
+                var,
+                VarInfo {
+                    offset: self.stack_index,
+                },
+            );
+            let offset = self.stack_index;
+            self.stack_index += size_words;
+            return Ok(offset);
+        }
+        return Err(Error::EmptyScopeStack);
+    }
 }
