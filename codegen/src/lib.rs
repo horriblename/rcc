@@ -102,11 +102,35 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
                 }
             }
         }
-        ast::Stmt::Expr(_) => {
-            todo!()
-        }
-        ast::Stmt::If(_) => todo!(),
+        ast::Stmt::Expr(expr) => gen_expr(state, expr, out),
+        ast::Stmt::If(stmt) => gen_if_stmt(state, &stmt, out),
     };
+}
+
+fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std::io::Write) {
+    gen_expr(state, &stmt.cond, out);
+    let alt_label = stmt
+        .alternative
+        .as_ref()
+        .map(|_| state.gen_unique_label("alternative"));
+    let post_label = state.gen_unique_label("post_conditional");
+
+    write_op!(out, "cmpl $0, %eax");
+    // jump if condition == 0 (condition evaluates to false)
+    // jump location is `alt` if it exists, else post-if-statement
+    write_op!(out, "je {}", alt_label.as_ref().unwrap_or(&post_label));
+
+    // consequence of if statement
+    gen_stmt(state, &stmt.body, out);
+    write_op!(out, "jmp {}", &post_label);
+
+    // alternative of if statement, if it exists
+    if let (Some(label), Some(alt)) = (alt_label, &stmt.alternative) {
+        write_label(out, &label);
+        gen_stmt(state, &alt, out);
+    }
+
+    write_label(out, &post_label);
 }
 
 fn gen_return_stmt(
@@ -131,6 +155,7 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
         ast::Expr::Unary(expr) => gen_unary_expr(state, expr, out),
         ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movl ${}, %eax", value),
         ast::Expr::Assign(expr) => gen_assignment(state, expr, out),
+        ast::Expr::Conditional(_) => todo!(),
     }
 }
 
