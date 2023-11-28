@@ -11,6 +11,8 @@ pub struct VarInfo {
 pub struct FnIndex {
     /// in the unit of 'words'
     stack_index: u64,
+
+    // Guarantee there is always at least one scope
     vars: Vec<Scope>,
 }
 
@@ -26,7 +28,7 @@ impl FnIndex {
     pub fn new() -> FnIndex {
         FnIndex {
             stack_index: 1,
-            vars: vec![Scope::new()],
+            vars: vec![],
         }
     }
 
@@ -54,5 +56,13 @@ impl FnIndex {
             return Ok(offset);
         }
         return Err(Error::EmptyScopeStack);
+    }
+
+    pub fn add_scope(&mut self) {
+        self.vars.push(Scope::new());
+    }
+
+    pub fn pop_scope(&mut self) {
+        self.vars.pop();
     }
 }

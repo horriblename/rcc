@@ -70,9 +70,7 @@ fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::
     write_op!(out, "push %rbp");
     // update bp to old sp
     write_op!(out, "movq %rsp, %rbp");
-    for stmt in &fndef.body.body {
-        gen_stmt(state, &stmt, out);
-    }
+    gen_scoped_block(state, &fndef.body, out);
 
     write_op!(out, "movq %rbp, %rsp");
     write_op!(out, "popq %rbp");
@@ -109,6 +107,7 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         }
         ast::Stmt::Expr(expr) => gen_expr(state, expr, out),
         ast::Stmt::If(stmt) => gen_if_stmt(state, &stmt, out),
+        ast::Stmt::Block(block) => gen_scoped_block(state, block, out),
     };
 }
 
@@ -146,6 +145,16 @@ fn gen_return_stmt(
     gen_expr(state, &stmt.expr, out);
     write_op!(out, "leave");
     write_op!(out, "ret");
+}
+
+fn gen_scoped_block(state: &mut ProgramState, block: &ast::Block, out: &mut impl std::io::Write) {
+    state.scopes.as_mut().expect("TODO").add_scope();
+
+    for stmt in &block.body {
+        gen_stmt(state, &stmt, out)
+    }
+
+    state.scopes.as_mut().expect("TODO").pop_scope();
 }
 
 /// generates code to evaluate expression and keep result in EAX
