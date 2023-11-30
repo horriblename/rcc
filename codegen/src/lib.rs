@@ -116,6 +116,10 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         ast::Stmt::Expr(expr) => gen_expr(state, expr, out),
         ast::Stmt::If(stmt) => gen_if_stmt(state, &stmt, out),
         ast::Stmt::Block(block) => gen_scoped_block(state, block, out),
+        ast::Stmt::Nothing => (),
+        ast::Stmt::For(_) => todo!(),
+        ast::Stmt::While(stmt) => gen_while_loop(state, stmt, out),
+        ast::Stmt::DoWhile(stmt) => gen_do_while_loop(state, stmt, out),
     };
 }
 
@@ -144,6 +148,52 @@ fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std:
     }
 
     write_label(out, &post_label);
+}
+
+// the control flow of a while loop:
+// 1. Evaluate condition
+// 2. if its false, jump to step 5
+// 3. execute body statement
+// 4. jump to step 1
+// 5. Finish
+fn gen_while_loop(state: &mut ProgramState, stmt: &ast::While, out: &mut impl std::io::Write) {
+    let begin_while_label = state.gen_unique_label("begin_while");
+    let end_while_label = state.gen_unique_label("end_while");
+
+    write_label(out, &begin_while_label);
+
+    tag_dbg(out, "eval while condition");
+    gen_expr(state, &stmt.cond, out);
+
+    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "je {}", end_while_label);
+
+    tag_dbg(out, "execute loop body");
+    gen_stmt(state, &stmt.body, out);
+
+    tag_dbg(out, "jump to start of loop");
+    write_op!(out, "jmp {}", begin_while_label);
+
+    write_label(out, &end_while_label);
+}
+
+fn gen_do_while_loop(state: &mut ProgramState, stmt: &ast::DoWhile, out: &mut impl std::io::Write) {
+    let begin_label = state.gen_unique_label("begin_do_while");
+    let end_label = state.gen_unique_label("end_do_while");
+
+    write_label(out, &begin_label);
+
+    tag_dbg(out, "execute loop body");
+    gen_scoped_block(state, &stmt.body, out);
+
+    tag_dbg(out, "eval while condition");
+    gen_expr(state, &stmt.cond, out);
+
+    tag_dbg(out, "jump to start of loop if true");
+    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "jne {}", begin_label);
+
+    write_label(out, &end_label);
 }
 
 fn gen_return_stmt(

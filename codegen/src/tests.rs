@@ -48,6 +48,8 @@ test_c_file!(if_statement, "tests/if_statement.c");
 test_c_file!(conditional, "tests/conditional.c");
 test_c_file!(conditional_alt, "tests/conditional_alt.c");
 test_c_file!(scope_block, "tests/scope_block.c");
+test_c_file!(while_loop, "tests/while_loop.c");
+test_c_file!(do_while_loop, "tests/do_while_loop.c");
 
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();
