@@ -36,15 +36,18 @@ impl FnIndex {
     }
 
     pub fn find_any<'a>(&'a self, var: &str) -> Option<&'a VarInfo> {
-        self.vars.iter().find_map(move |scope| scope.vars.get(var))
+        self.vars
+            .iter()
+            .rev()
+            .find_map(move |scope| scope.vars.get(var))
     }
 
     /// declare a new variable in the top-most scope, if var already exists an error is returned.
     /// Returns the offset from the base pointer as number of words, which can be used as
-    /// ```
+    /// ```ignore
+    /// offset = fn_index.declare("x", 1);
     /// format!("movq 0x{:x}($rbp), %rax", offset * 8 /* 8 is the word size in bytes */)
     /// ```
-    /// mov as `format!("movq %rax, {offset}(%rbp)")`
     pub fn declare(&mut self, var: String, size_words: u64) -> Result<u64, Error> {
         if let Some(scope) = self.vars.last_mut() {
             if scope.vars.contains_key(&var) {
@@ -73,7 +76,7 @@ impl FnIndex {
 
     /// Pops a scope, returning the number of bytes to deallocate.
     /// The stack pointer _MUST_ be set to the returned offset like this:
-    /// ```
+    /// ```ignore
     /// const WORD_SIZE_BYTES: u64 = 8;
     /// format!("addq $0x{:x}, %rsp", fn_index.pop_scope() * WORK_SIZE_BYTES);
     /// ```
