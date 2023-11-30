@@ -42,6 +42,7 @@ test_c_file!(bitwise_xor, "tests/bitwise_xor.c");
 test_c_file!(bitwise_shiftl, "tests/bitwise_shiftl.c");
 test_c_file!(bitwise_shiftr, "tests/bitwise_shiftr.c");
 test_c_file!(declaration, "tests/declaration.c");
+test_c_file!(declarations, "tests/declarations.c");
 test_c_file!(assignment, "tests/assignment.c");
 test_c_file!(if_statement, "tests/if_statement.c");
 test_c_file!(conditional, "tests/conditional.c");
