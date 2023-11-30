@@ -16,7 +16,10 @@ pub struct FnIndex {
     vars: Vec<Scope>,
 }
 
-pub type Scope = HashMap<String, VarInfo>;
+pub struct Scope {
+    vars: HashMap<String, VarInfo>,
+    entry_stack_index: u64,
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -33,19 +36,22 @@ impl FnIndex {
     }
 
     pub fn find_any<'a>(&'a self, var: &str) -> Option<&'a VarInfo> {
-        self.vars.iter().find_map(move |scope| scope.get(var))
+        self.vars.iter().find_map(move |scope| scope.vars.get(var))
     }
 
     /// declare a new variable in the top-most scope, if var already exists an error is returned.
-    /// Returns the offset from the base pointer as number of words, which can be directly used in
-    /// mov as `format!("movq %rax, {offset}(%ebp)")`
+    /// Returns the offset from the base pointer as number of words, which can be used as
+    /// ```
+    /// format!("movq 0x{:x}($rbp), %rax", offset * 8 /* 8 is the word size in bytes */)
+    /// ```
+    /// mov as `format!("movq %rax, {offset}(%rbp)")`
     pub fn declare(&mut self, var: String, size_words: u64) -> Result<u64, Error> {
         if let Some(scope) = self.vars.last_mut() {
-            if scope.contains_key(&var) {
+            if scope.vars.contains_key(&var) {
                 return Err(Error::VariableRedeclared);
             }
 
-            scope.insert(
+            scope.vars.insert(
                 var,
                 VarInfo {
                     offset: self.stack_index,
@@ -59,10 +65,21 @@ impl FnIndex {
     }
 
     pub fn add_scope(&mut self) {
-        self.vars.push(Scope::new());
+        self.vars.push(Scope {
+            vars: HashMap::new(),
+            entry_stack_index: self.stack_index,
+        });
     }
 
-    pub fn pop_scope(&mut self) {
-        self.vars.pop();
+    /// Pops a scope, returning the number of bytes to deallocate.
+    /// The stack pointer _MUST_ be set to the returned offset like this:
+    /// ```
+    /// const WORD_SIZE_BYTES: u64 = 8;
+    /// format!("addq $0x{:x}, %rsp", fn_index.pop_scope() * WORK_SIZE_BYTES);
+    /// ```
+    pub fn pop_scope(&mut self) -> u64 {
+        let entry_stack_index = self.vars.pop().expect("TODO").entry_stack_index;
+        let bytes_to_deallocate = self.stack_index - entry_stack_index;
+        return bytes_to_deallocate;
     }
 }

@@ -22,6 +22,12 @@ macro_rules! write_op {
     }};
 }
 
+#[allow(dead_code)]
+fn tag_dbg(_out: &mut impl std::io::Write, _tag: &str) {
+    #[cfg(any(debug, test))]
+    writeln!(_out, "// {}", _tag).unwrap();
+}
+
 fn write_label(out: &mut impl std::io::Write, label: &str) {
     writeln!(out, "{}:", label).unwrap();
 }
@@ -82,12 +88,12 @@ fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::
 }
 
 fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::Write) {
-    // writeln_!()
     match stmt {
         ast::Stmt::Return(ret) => gen_return_stmt(state, &ret, out),
         ast::Stmt::Decl(DeclarationStmt {
             name, initializer, ..
         }) => {
+            tag_dbg(out, "declaration");
             match state
                 .scopes
                 .as_mut()
@@ -114,6 +120,7 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
 }
 
 fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std::io::Write) {
+    tag_dbg(out, "if stmt");
     gen_expr(state, &stmt.cond, out);
     let alt_label = stmt
         .alternative
@@ -152,11 +159,18 @@ fn gen_return_stmt(
 fn gen_scoped_block(state: &mut ProgramState, block: &ast::Block, out: &mut impl std::io::Write) {
     state.scopes.as_mut().expect("TODO").add_scope();
 
+    tag_dbg(out, "scope");
+
     for stmt in &block.body {
         gen_stmt(state, &stmt, out)
     }
 
-    state.scopes.as_mut().expect("TODO").pop_scope();
+    let bytes_to_deallocate = state.scopes.as_mut().expect("TODO").pop_scope();
+    write_op!(
+        out,
+        "addq $0x{:x}, %rsp",
+        bytes_to_deallocate * WORD_SIZE_BYTES
+    );
 }
 
 /// generates code to evaluate expression and keep result in EAX
