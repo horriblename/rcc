@@ -207,7 +207,7 @@ fn test_parse_loop() {
             while (1);
             do {
                 i += 1;
-            } while (1)
+            } while (1);
         }
         "#;
 

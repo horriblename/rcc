@@ -268,8 +268,9 @@ fn parse_do_while_loop<'a, E: ParseError<ParserIn<'a>>>(
             parse_block,
             one(TokenType::While),
             delimited(one(TokenType::LParen), parse_expr, one(TokenType::RParen)),
+            one(TokenType::Semicolon),
         )),
-        |(_, body, _, cond)| ast::DoWhile { cond, body },
+        |(_, body, _, cond, _)| ast::DoWhile { cond, body },
     )(source)
 }
 
