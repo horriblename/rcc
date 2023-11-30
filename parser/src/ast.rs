@@ -13,6 +13,8 @@ pub enum TopLevel<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt<'a> {
+    /// an empty statement `;`
+    Nothing,
     Return(ReturnStmt<'a>),
     Decl(DeclarationStmt<'a>),
     If(Box<IfStmt<'a>>),
