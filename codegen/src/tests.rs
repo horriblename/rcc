@@ -51,6 +51,7 @@ test_c_file!(scope_block, "tests/scope_block.c");
 test_c_file!(while_loop, "tests/while_loop.c");
 test_c_file!(do_while_loop, "tests/do_while_loop.c");
 test_c_file!(for_loop, "tests/for_loop.c");
+test_c_file!(break_stmt, "tests/break_stmt.c");
 
 fn gen_code(program: LocatedSpan<&str>, asm_name: &str) {
     let (_, tokens) = lexer::lex_program(program).unwrap();

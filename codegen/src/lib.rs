@@ -36,6 +36,8 @@ struct ProgramState {
     unique_label_counter: u32,
     // global: Scope,
     scopes: Option<FnIndex>,
+    continue_target: Vec<String>,
+    break_target: Vec<String>,
 }
 
 impl ProgramState {
@@ -52,6 +54,8 @@ pub fn codegen(program: &ast::Program, out: &mut impl std::io::Write) {
     let mut state = ProgramState {
         unique_label_counter: 0,
         scopes: None,
+        continue_target: Vec::new(),
+        break_target: Vec::new(),
     };
     codegen_(&mut state, program, out);
 }
@@ -120,6 +124,20 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         ast::Stmt::For(stmt) => gen_for_loop(state, stmt, out),
         ast::Stmt::While(stmt) => gen_while_loop(state, stmt, out),
         ast::Stmt::DoWhile(stmt) => gen_do_while_loop(state, stmt, out),
+        ast::Stmt::Break => {
+            let break_target = state
+                .break_target
+                .last()
+                .expect("break statement is not in a for/while loop");
+            write_op!(out, "jmp {}", break_target);
+        }
+        ast::Stmt::Continue => {
+            let cont_target = state
+                .continue_target
+                .last()
+                .expect("continue statement is not in a for/while loop");
+            write_op!(out, "jmp {}", cont_target);
+        }
     };
 }
 
@@ -161,6 +179,8 @@ fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std:
 fn gen_for_loop(state: &mut ProgramState, stmt: &ast::For, out: &mut impl std::io::Write) {
     let begin_label = state.gen_unique_label("begin_for");
     let end_label = state.gen_unique_label("end_for");
+    state.break_target.push(end_label.clone());
+    state.continue_target.push(begin_label.clone());
 
     tag_dbg(out, "for loop");
     gen_stmt(state, &stmt.init, out);
@@ -181,6 +201,8 @@ fn gen_for_loop(state: &mut ProgramState, stmt: &ast::For, out: &mut impl std::i
     write_op!(out, "jmp {}", begin_label);
 
     write_label(out, &end_label);
+    state.break_target.pop();
+    state.continue_target.pop();
 }
 
 // the control flow of a while loop:
@@ -190,29 +212,35 @@ fn gen_for_loop(state: &mut ProgramState, stmt: &ast::For, out: &mut impl std::i
 // 4. jump to step 1
 // 5. Finish
 fn gen_while_loop(state: &mut ProgramState, stmt: &ast::While, out: &mut impl std::io::Write) {
-    let begin_while_label = state.gen_unique_label("begin_while");
-    let end_while_label = state.gen_unique_label("end_while");
+    let begin_label = state.gen_unique_label("begin_while");
+    let end_label = state.gen_unique_label("end_while");
+    state.break_target.push(end_label.clone());
+    state.continue_target.push(begin_label.clone());
 
-    write_label(out, &begin_while_label);
+    write_label(out, &begin_label);
 
     tag_dbg(out, "eval while condition");
     gen_expr(state, &stmt.cond, out);
 
     write_op!(out, "cmpl $0, %eax");
-    write_op!(out, "je {}", end_while_label);
+    write_op!(out, "je {}", end_label);
 
     tag_dbg(out, "execute loop body");
     gen_stmt(state, &stmt.body, out);
 
     tag_dbg(out, "jump to start of loop");
-    write_op!(out, "jmp {}", begin_while_label);
+    write_op!(out, "jmp {}", begin_label);
 
-    write_label(out, &end_while_label);
+    write_label(out, &end_label);
+    state.break_target.pop();
+    state.continue_target.pop();
 }
 
 fn gen_do_while_loop(state: &mut ProgramState, stmt: &ast::DoWhile, out: &mut impl std::io::Write) {
     let begin_label = state.gen_unique_label("begin_do_while");
     let end_label = state.gen_unique_label("end_do_while");
+    state.break_target.push(end_label.clone());
+    state.continue_target.push(begin_label.clone());
 
     write_label(out, &begin_label);
 
@@ -227,6 +255,8 @@ fn gen_do_while_loop(state: &mut ProgramState, stmt: &ast::DoWhile, out: &mut im
     write_op!(out, "jne {}", begin_label);
 
     write_label(out, &end_label);
+    state.break_target.pop();
+    state.continue_target.pop();
 }
 
 fn gen_return_stmt(
