@@ -25,6 +25,12 @@ macro_rules! mark {
         $e
     }};
 }
+
+fn log_trying(msg: &str) {
+    #[cfg(any(debug, test))]
+    eprintln!("\x1b[32mtrying: {}\x1b[0m", msg)
+}
+
 // Creates a left-associative infix parser, e.g. '+', '-' etc.
 macro_rules! infix_parser {
     (fn $fn_name: ident($child_parser: expr, $($symbol_parsers: expr),+)) => {
@@ -127,20 +133,39 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
             terminated(parse_return, one(TokenType::Semicolon)),
             ast::Stmt::Return,
         ),
-        map(
-            terminated(parse_declaration, one(TokenType::Semicolon)),
-            ast::Stmt::Decl,
-        ),
+        parse_declaration_stmt,
         map(parse_if_stmt, |stmt| ast::Stmt::If(Box::new(stmt))),
-        map(
-            terminated(parse_expr, one(TokenType::Semicolon)),
-            ast::Stmt::Expr,
-        ),
+        parse_expr_stmt,
         map(parse_block, |block| ast::Stmt::Block(Box::new(block))),
-        map(one(TokenType::Semicolon), |_| ast::Stmt::Nothing),
+        parse_null_stmt,
+        map(parse_for_loop, |stmt| ast::Stmt::For(Box::new(stmt))),
         map(parse_while_loop, |stmt| ast::Stmt::While(Box::new(stmt))),
         map(parse_do_while_loop, ast::Stmt::DoWhile),
     ))(source)
+}
+
+fn parse_expr_stmt<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Stmt, E> {
+    map(
+        terminated(parse_expr, one(TokenType::Semicolon)),
+        ast::Stmt::Expr,
+    )(source)
+}
+
+fn parse_declaration_stmt<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Stmt, E> {
+    map(
+        terminated(parse_declaration, one(TokenType::Semicolon)),
+        ast::Stmt::Decl,
+    )(source)
+}
+
+fn parse_null_stmt<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Stmt, E> {
+    map(one(TokenType::Semicolon), |_| ast::Stmt::Nothing)(source)
 }
 
 fn parse_return<'a, E: ParseError<ParserIn<'a>>>(
@@ -186,6 +211,39 @@ fn parse_if_stmt<'a, E: ParseError<ParserIn<'a>>>(
             },
         ),
     )(source)
+}
+
+fn parse_for_loop<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::For, E> {
+    log_trying("for loop");
+    let (source, res) = tuple((
+        one(TokenType::For),
+        delimited(
+            one(TokenType::LParen),
+            tuple((
+                alt((parse_declaration_stmt, parse_expr_stmt, parse_null_stmt)),
+                alt((parse_expr_stmt, parse_null_stmt)),
+                opt(parse_expr),
+            )),
+            one(TokenType::RParen),
+        ),
+        parse_stmt,
+    ))(source)?;
+
+    Ok((
+        source,
+        ast::For {
+            init: res.1 .0,
+            control: if let ast::Stmt::Expr(expr) = res.1 .1 {
+                expr
+            } else {
+                ast::Expr::IntLit(ast::IntLiteral { value: 1 })
+            },
+            post: res.1 .2,
+            body: res.2,
+        },
+    ))
 }
 
 fn parse_while_loop<'a, E: ParseError<ParserIn<'a>>>(

@@ -6,9 +6,9 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, IfStmt,
+        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, For, IfStmt,
         InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt, Stmt, TopLevel, UnaryExpr,
-        UnarySign,
+        UnarySign, While,
     },
     parse_expr, parse_program, ParserIn,
 };
@@ -188,6 +188,74 @@ fn test_parse_if() {
                             alternative: Some(Stmt::Expr(int(2))),
                         }))),
                     }))],
+                },
+            })]
+        },
+    };
+
+    let (_, got) = parse_program::<VerboseError<ParserIn>>(&tokens).unwrap();
+
+    assert_eq!(got, expect);
+}
+
+#[test]
+fn test_parse_loop() {
+    let prog = r#"
+        int main() {
+            for (int i = 0; i < 10; i += 1);
+            for (;;);
+            while (1);
+            do {
+                i += 1;
+            } while (1)
+        }
+        "#;
+
+    let (_, tokens) = lex_program(prog.into()).unwrap();
+
+    fn int<'a>(n: i32) -> Expr<'a> {
+        Expr::IntLit(IntLiteral { value: n })
+    }
+
+    let expect = Program {
+        children: {
+            vec![TopLevel::FnDef(FnDef {
+                return_type: ident_ast!("int"),
+                name: ident_ast!("main"),
+                args: vec![],
+                body: Block {
+                    body: vec![
+                        Stmt::For(Box::new(For {
+                            init: Stmt::Decl(DeclarationStmt {
+                                type_: ident_ast!("int"),
+                                name: ident_ast!("i"),
+                                initializer: Some(int(0)),
+                            }),
+                            control: op!(InfixSymbol::Less, Expr::Ident(ident_ast!("i")), int(10)),
+                            post: Some(assign_expr(AssignSymbol::PlusEq, ident_ast!("i"), int(1))),
+                            body: Stmt::Nothing,
+                        })),
+                        Stmt::For(Box::new(For {
+                            init: Stmt::Nothing,
+                            control: int(1),
+                            post: None,
+                            body: Stmt::Nothing,
+                        })),
+                        Stmt::While(Box::new(While {
+                            cond: int(1),
+                            body: Stmt::Nothing,
+                        })),
+                        Stmt::DoWhile(ast::DoWhile {
+                            body: Block {
+                                body: vec![Stmt::Expr(assign_expr(
+                                    AssignSymbol::PlusEq,
+                                    ident_ast!("i"),
+                                    int(1),
+                                ))],
+                            },
+                            cond: int(1),
+                        }),
+                    ],
                 },
             })]
         },
