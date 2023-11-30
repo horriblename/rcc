@@ -141,7 +141,14 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
         map(parse_for_loop, |stmt| ast::Stmt::For(Box::new(stmt))),
         map(parse_while_loop, |stmt| ast::Stmt::While(Box::new(stmt))),
         map(parse_do_while_loop, ast::Stmt::DoWhile),
-        map(one(TokenType::Break), |_| ast::Stmt::Break),
+        map(
+            terminated(one(TokenType::Break), one(TokenType::Semicolon)),
+            |_| ast::Stmt::Break,
+        ),
+        map(
+            terminated(one(TokenType::Continue), one(TokenType::Semicolon)),
+            |_| ast::Stmt::Continue,
+        ),
     ))(source)
 }
 

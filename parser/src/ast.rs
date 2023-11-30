@@ -16,6 +16,7 @@ pub enum Stmt<'a> {
     /// an empty statement `;`
     Nothing,
     Break,
+    Continue,
     Return(ReturnStmt<'a>),
     Decl(DeclarationStmt<'a>),
     If(Box<IfStmt<'a>>),

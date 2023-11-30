@@ -25,10 +25,6 @@ fn assign_expr<'a>(symbol: AssignSymbol, var: ast::Identifier<'a>, value: Expr<'
     Expr::Assign(Box::new(Assignment { symbol, var, value }))
 }
 
-fn block<'a>(expr: Vec<Stmt<'a>>) -> Block<'a> {
-    Block { body: expr }
-}
-
 macro_rules! block_stmt {
     [$($stmts: expr),*] => {{
         Stmt::Block(Box::new(Block {body: vec![$($stmts),*]}))
@@ -207,6 +203,8 @@ fn test_parse_loop() {
             while (1);
             do {
                 i += 1;
+                break;
+                continue;
             } while (1);
         }
         "#;
@@ -247,11 +245,15 @@ fn test_parse_loop() {
                         })),
                         Stmt::DoWhile(ast::DoWhile {
                             body: Block {
-                                body: vec![Stmt::Expr(assign_expr(
-                                    AssignSymbol::PlusEq,
-                                    ident_ast!("i"),
-                                    int(1),
-                                ))],
+                                body: vec![
+                                    Stmt::Expr(assign_expr(
+                                        AssignSymbol::PlusEq,
+                                        ident_ast!("i"),
+                                        int(1),
+                                    )),
+                                    Stmt::Break,
+                                    Stmt::Continue,
+                                ],
                             },
                             cond: int(1),
                         }),
