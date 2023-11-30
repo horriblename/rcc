@@ -26,9 +26,9 @@ macro_rules! mark {
     }};
 }
 
-fn log_trying(msg: &str) {
+fn log_trying(_msg: &str) {
     #[cfg(any(debug, test))]
-    eprintln!("\x1b[32mtrying: {}\x1b[0m", msg)
+    eprintln!("\x1b[32mtrying: {}\x1b[0m", _msg)
 }
 
 // Creates a left-associative infix parser, e.g. '+', '-' etc.
@@ -141,6 +141,7 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
         map(parse_for_loop, |stmt| ast::Stmt::For(Box::new(stmt))),
         map(parse_while_loop, |stmt| ast::Stmt::While(Box::new(stmt))),
         map(parse_do_while_loop, ast::Stmt::DoWhile),
+        map(one(TokenType::Break), |_| ast::Stmt::Break),
     ))(source)
 }
 

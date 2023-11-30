@@ -15,6 +15,7 @@ pub enum TopLevel<'a> {
 pub enum Stmt<'a> {
     /// an empty statement `;`
     Nothing,
+    Break,
     Return(ReturnStmt<'a>),
     Decl(DeclarationStmt<'a>),
     If(Box<IfStmt<'a>>),
