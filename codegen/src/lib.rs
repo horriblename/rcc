@@ -171,6 +171,8 @@ fn gen_scoped_block(state: &mut ProgramState, block: &ast::Block, out: &mut impl
         "addq $0x{:x}, %rsp",
         bytes_to_deallocate * WORD_SIZE_BYTES
     );
+
+    tag_dbg(out, "scope end")
 }
 
 /// generates code to evaluate expression and keep result in EAX
