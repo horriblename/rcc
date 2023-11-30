@@ -117,7 +117,7 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
         ast::Stmt::If(stmt) => gen_if_stmt(state, &stmt, out),
         ast::Stmt::Block(block) => gen_scoped_block(state, block, out),
         ast::Stmt::Nothing => (),
-        ast::Stmt::For(_) => todo!(),
+        ast::Stmt::For(stmt) => gen_for_loop(state, stmt, out),
         ast::Stmt::While(stmt) => gen_while_loop(state, stmt, out),
         ast::Stmt::DoWhile(stmt) => gen_do_while_loop(state, stmt, out),
     };
@@ -148,6 +148,39 @@ fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std:
     }
 
     write_label(out, &post_label);
+}
+
+// the control flow of a for loop:
+// 1. Evaluate init
+// 2. Evaluate condition
+// 3. If it's false, jump to step 7
+// 4. Execute statement
+// 5. Execute post-expression
+// 6. Jump to step 2.
+// 7. Finish
+fn gen_for_loop(state: &mut ProgramState, stmt: &ast::For, out: &mut impl std::io::Write) {
+    let begin_label = state.gen_unique_label("begin_for");
+    let end_label = state.gen_unique_label("end_for");
+
+    tag_dbg(out, "for loop");
+    gen_stmt(state, &stmt.init, out);
+
+    write_label(out, &begin_label);
+    gen_expr(state, &stmt.control, out);
+    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "je {}", end_label);
+
+    tag_dbg(out, "for loop body");
+    gen_stmt(state, &stmt.body, out);
+
+    if let Some(post) = &stmt.post {
+        tag_dbg(out, "for loop post expression");
+        gen_expr(state, post, out);
+    }
+
+    write_op!(out, "jmp {}", begin_label);
+
+    write_label(out, &end_label);
 }
 
 // the control flow of a while loop:
