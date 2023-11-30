@@ -150,7 +150,7 @@ fn gen_if_stmt(state: &mut ProgramState, stmt: &ast::IfStmt, out: &mut impl std:
         .map(|_| state.gen_unique_label("alternative"));
     let post_label = state.gen_unique_label("post_if");
 
-    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "cmpq $0, %rax");
     // jump if condition == 0 (condition evaluates to false)
     // jump location is `alt` if it exists, else post-if-statement
     write_op!(out, "je {}", alt_label.as_ref().unwrap_or(&post_label));
@@ -187,7 +187,7 @@ fn gen_for_loop(state: &mut ProgramState, stmt: &ast::For, out: &mut impl std::i
 
     write_label(out, &begin_label);
     gen_expr(state, &stmt.control, out);
-    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "cmpq $0, %rax");
     write_op!(out, "je {}", end_label);
 
     tag_dbg(out, "for loop body");
@@ -222,7 +222,7 @@ fn gen_while_loop(state: &mut ProgramState, stmt: &ast::While, out: &mut impl st
     tag_dbg(out, "eval while condition");
     gen_expr(state, &stmt.cond, out);
 
-    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "cmpq $0, %rax");
     write_op!(out, "je {}", end_label);
 
     tag_dbg(out, "execute loop body");
@@ -251,7 +251,7 @@ fn gen_do_while_loop(state: &mut ProgramState, stmt: &ast::DoWhile, out: &mut im
     gen_expr(state, &stmt.cond, out);
 
     tag_dbg(out, "jump to start of loop if true");
-    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "cmpq $0, %rax");
     write_op!(out, "jne {}", begin_label);
 
     write_label(out, &end_label);
@@ -300,13 +300,13 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
                 .expect("undeclared variable.");
             write_op!(
                 out,
-                "movl -0x{:x}(%rbp), %eax",
+                "movq -0x{:x}(%rbp), %rax",
                 info.offset * WORD_SIZE_BYTES
             );
         }
         ast::Expr::Infix(expr) => gen_infix_expr(state, expr, out),
         ast::Expr::Unary(expr) => gen_unary_expr(state, expr, out),
-        ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movl ${}, %eax", value),
+        ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movq ${}, %rax", value),
         ast::Expr::Assign(expr) => gen_assignment(state, expr, out),
         ast::Expr::Conditional(expr) => gen_conditional(state, expr, out),
     }
@@ -322,7 +322,7 @@ fn gen_conditional(
     let alt_label = state.gen_unique_label("alternative");
     let post_label = state.gen_unique_label("post_conditional");
 
-    write_op!(out, "cmpl $0, %eax");
+    write_op!(out, "cmpq $0, %rax");
     // jump if e1 == 0
     write_op!(out, "je {}", alt_label);
 
@@ -348,7 +348,7 @@ fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut im
                 .expect("undeclared variable.")
                 .offset;
             gen_expr(state, &expr.value, out);
-            write_op!(out, "movl %eax, -0x{:x}(%rbp)", offset * WORD_SIZE_BYTES);
+            write_op!(out, "movq %rax, -0x{:x}(%rbp)", offset * WORD_SIZE_BYTES);
         }
         _ => todo!(),
     }
@@ -361,16 +361,16 @@ fn gen_unary_expr(state: &mut ProgramState, expr: &ast::UnaryExpr, out: &mut imp
 
     match expr.symbol {
         UnarySign::Negate => {
-            write_op!(out, "neg %eax");
+            write_op!(out, "neg %rax");
         }
         UnarySign::BitComplement => {
-            write_op!(out, "not %eax");
+            write_op!(out, "not %rax");
         }
         UnarySign::LogicNegate => {
-            write_op!(out, "cmpl $0, %eax");
+            write_op!(out, "cmpq $0, %rax");
 
             // zero out EAX
-            write_op!(out, "movl $0, %eax");
+            write_op!(out, "movq $0, %rax");
 
             // set AL register (the lower byte of EAX) to 1 iff ZF is on
             write_op!(out, "%al");
@@ -389,119 +389,119 @@ fn gen_infix_expr(state: &mut ProgramState, expr: &ast::InfixExpr, out: &mut imp
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "addl %ecx, %eax")
+            write_op!(out, "addq %rcx, %rax")
         }
         ast::InfixSymbol::Minus => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
-            write_op!(out, "movl %eax, %ecx");
+            write_op!(out, "movq %rax, %rcx");
             write_op!(out, "pop %rax");
-            write_op!(out, "subl %ecx, %eax")
+            write_op!(out, "subq %rcx, %rax")
         }
         ast::InfixSymbol::Times => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "imul %ecx, %eax")
+            write_op!(out, "imul %rcx, %rax")
         }
         ast::InfixSymbol::Divide => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
-            write_op!(out, "movl %eax, %ebx");
+            write_op!(out, "movq %rax, %rbx");
             write_op!(out, "pop %rax");
             // zero out edx, not exactly sure if I need this
-            write_op!(out, "xorl %edx, %edx");
+            write_op!(out, "xorq %rdx, %rdx");
 
             // `idivl %ebx` divides the 64-bit int edx:eax (concatenated) by ebx
             // storing the quotient in eax and remainder in edx
-            write_op!(out, "idivl %ebx");
+            write_op!(out, "idivq %rbx");
         }
         ast::InfixSymbol::Modulo => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
-            write_op!(out, "movl %eax, %ebx");
+            write_op!(out, "movq %rax, %rbx");
             write_op!(out, "pop %rax");
-            write_op!(out, "xorl %edx, %edx");
-            write_op!(out, "idivl %ebx");
+            write_op!(out, "xorq %rdx, %rdx");
+            write_op!(out, "idivq %rbx");
 
-            write_op!(out, "movl %edx, %eax");
+            write_op!(out, "movq %rdx, %rax");
         }
         ast::InfixSymbol::Less => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx"); // rax = right, rcx = left
-            write_op!(out, "cmpl %eax, %ecx"); // compare and set flags
-            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "cmpq %rax, %rcx"); // compare and set flags
+            write_op!(out, "movq $0, %rax"); // zero out eax
             write_op!(out, "setl %al"); // set if less
         }
         ast::InfixSymbol::More => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx"); // rax = right, rcx = left
-            write_op!(out, "cmpl %eax, %ecx"); // compare and set flags
-            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "cmpq %rax, %rcx"); // compare and set flags
+            write_op!(out, "movq $0, %rax"); // zero out eax
             write_op!(out, "setg %al"); // set if less
         }
         ast::InfixSymbol::LessEq => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "cmpl %eax, %ecx");
-            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "cmpq %rax, %rcx");
+            write_op!(out, "movq $0, %rax"); // zero out eax
             write_op!(out, "setle %al")
         }
         ast::InfixSymbol::MoreEq => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "cmpl %eax, %ecx");
-            write_op!(out, "movl $0, %eax"); // zero out eax
+            write_op!(out, "cmpq %rax, %rcx");
+            write_op!(out, "movq $0, %rax"); // zero out eax
             write_op!(out, "setge %al")
         }
         ast::InfixSymbol::Equality => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "cmpl %eax, %ecx");
-            write_op!(out, "movl $0, %eax");
+            write_op!(out, "cmpq %rax, %rcx");
+            write_op!(out, "movq $0, %rax");
             write_op!(out, "sete %al");
         }
         ast::InfixSymbol::NotEq => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx");
-            write_op!(out, "cmpl %eax, %ecx");
-            write_op!(out, "movl $0, %eax");
+            write_op!(out, "cmpq %rax, %rcx");
+            write_op!(out, "movq $0, %rax");
             write_op!(out, "setne %al");
         }
         ast::InfixSymbol::LogicalAnd => {
             let next_clause_label = state.gen_unique_label("next_clause");
             let end_label = state.gen_unique_label("end");
-            write_op!(out, "cmpl $0, %eax"); // check if e1 is true
-            write_op!(out, "movl $0, %eax");
+            write_op!(out, "cmpq $0, %rax"); // check if e1 is true
+            write_op!(out, "movq $0, %rax");
             write_op!(out, "jne {}", next_clause_label); // e1 != 0 => jump to next clause
 
             // write_op!(out, "movl $0, %eax");
             write_op!(out, "jmp {}", end_label);
             write_label(out, &next_clause_label);
             gen_expr(state, &expr.right, out);
-            write_op!(out, "cmpl $0, %eax"); // check if e2 is true
-            write_op!(out, "movl $0, %eax"); // zero out EAX, without changing ZF
+            write_op!(out, "cmpq $0, %rax"); // check if e2 is true
+            write_op!(out, "movq $0, %rax"); // zero out EAX, without changing ZF
             write_op!(out, "setne %al"); // set AL register to 1 iff e2 != 0
             write_label(out, &end_label);
         }
         ast::InfixSymbol::LogicalOr => {
             let next_clause_label = state.gen_unique_label("next_clause");
             let end_label = state.gen_unique_label("end");
-            write_op!(out, "cmpl $0, %eax"); // check if e1 is true
-            write_op!(out, "movl $0, %eax");
+            write_op!(out, "cmpq $0, %rax"); // check if e1 is true
+            write_op!(out, "movq $0, %rax");
             write_op!(out, "je {}", next_clause_label); // e1 == 0 => jump to next clause
-            write_op!(out, "movl $1, %eax");
+            write_op!(out, "movq $1, %rax");
             write_op!(out, "jmp {}", end_label);
             write_label(out, &next_clause_label);
             gen_expr(state, &expr.right, out);
-            write_op!(out, "cmpl $0, %eax"); // check if e2 is true
-            write_op!(out, "movl $0, %eax"); // zero out EAX, without changing ZF
+            write_op!(out, "cmpq $0, %rax"); // check if e2 is true
+            write_op!(out, "movq $0, %rax"); // zero out EAX, without changing ZF
             write_op!(out, "setne %al"); // set AL register to 1 iff e2 != 0
             write_label(out, &end_label);
         }
@@ -509,33 +509,33 @@ fn gen_infix_expr(state: &mut ProgramState, expr: &ast::InfixExpr, out: &mut imp
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx"); // eax = right, ecx = left
-            write_op!(out, "and %ecx, %eax");
+            write_op!(out, "and %rcx, %rax");
         }
         ast::InfixSymbol::BitOr => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx"); // eax = right, ecx = left
-            write_op!(out, "or %ecx, %eax");
+            write_op!(out, "or %rcx, %rax");
         }
         ast::InfixSymbol::BitXor => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
             write_op!(out, "pop %rcx"); // eax = right, ecx = left
-            write_op!(out, "xor %ecx, %eax");
+            write_op!(out, "xor %rcx, %rax");
         }
         ast::InfixSymbol::BitShiftLeft => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
-            write_op!(out, "movl %eax, %ecx");
+            write_op!(out, "movq %rax, %rcx");
             write_op!(out, "pop %rax"); // eax = left, ecx = right
-            write_op!(out, "shl %ecx, %eax");
+            write_op!(out, "shl %rcx, %rax");
         }
         ast::InfixSymbol::BitShiftRight => {
             write_op!(out, "push %rax");
             gen_expr(state, &expr.right, out);
-            write_op!(out, "movl %eax, %ecx");
+            write_op!(out, "movq %rax, %rcx");
             write_op!(out, "pop %rax"); // eax = left, ecx = right
-            write_op!(out, "shr %ecx, %eax");
+            write_op!(out, "shr %rcx, %rax");
         }
     }
 }
