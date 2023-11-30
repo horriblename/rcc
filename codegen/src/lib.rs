@@ -6,6 +6,8 @@ mod scope;
 #[cfg(test)]
 mod tests;
 
+const WORD_SIZE_BYTES: u64 = 8;
+
 // like writeln! but always unwrap
 macro_rules! writeln_ {
     ($out: expr, $($f: expr),+) => {{
@@ -90,7 +92,7 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
                 .scopes
                 .as_mut()
                 .expect("TODO")
-                .declare(name.name.name.to_string(), 32)
+                .declare(name.name.name.to_string(), 1)
             {
                 Err(scope::Error::EmptyScopeStack) => unreachable!("this is a bug"),
                 // TODO: better error message
@@ -167,7 +169,11 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
                 .expect("TODO")
                 .find_any(&var.name.name)
                 .expect("undeclared variable.");
-            write_op!(out, "movl -{:x}(%rbp), %eax", info.offset * 8);
+            write_op!(
+                out,
+                "movl -0x{:x}(%rbp), %eax",
+                info.offset * WORD_SIZE_BYTES
+            );
         }
         ast::Expr::Infix(expr) => gen_infix_expr(state, expr, out),
         ast::Expr::Unary(expr) => gen_unary_expr(state, expr, out),
@@ -213,7 +219,7 @@ fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut im
                 .expect("undeclared variable.")
                 .offset;
             gen_expr(state, &expr.value, out);
-            write_op!(out, "movl %eax, -{:x}(%rbp)", offset * 8);
+            write_op!(out, "movl %eax, -0x{:x}(%rbp)", offset * WORD_SIZE_BYTES);
         }
         _ => todo!(),
     }
