@@ -35,11 +35,6 @@ pub fn lex_program<'a>(program: Span<'a>) -> IResult<Span<'a>, Vec<Token<'a>>> {
         // one `alt` can only hold 21 options
         alt((
             alt((
-                tag_tok("return", TokenType::Return),
-                tag_tok("if", TokenType::If),
-                tag_tok("else", TokenType::Else),
-            )),
-            alt((
                 tag_tok("<<=", TokenType::LessLessEq),
                 tag_tok(">>=", TokenType::MoreMoreEq),
                 tag_tok("&&", TokenType::LogicalAnd),
@@ -118,7 +113,17 @@ fn lex_identifier<'a>(source: Span<'a>) -> IResult<Span<'a>, Token> {
     let (s, ident) = take_while(|c: char| c.is_alphanumeric() || c == '_')(s)?;
     Ok((
         s,
-        Token::new(pos, TokenType::Ident(token::Identifier { name: &ident })),
+        match ident.as_ref() {
+            "return" => Token::new(pos, TokenType::Return),
+            "if" => Token::new(pos, TokenType::If),
+            "else" => Token::new(pos, TokenType::Else),
+            "break" => Token::new(pos, TokenType::Break),
+            "continue" => Token::new(pos, TokenType::Continue),
+            "for" => Token::new(pos, TokenType::For),
+            "while" => Token::new(pos, TokenType::While),
+            "do" => Token::new(pos, TokenType::Do),
+            _ => Token::new(pos, TokenType::Ident(token::Identifier { name: &ident })),
+        },
     ))
 }
 

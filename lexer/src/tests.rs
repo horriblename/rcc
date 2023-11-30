@@ -60,7 +60,7 @@ fn test_main() {
 fn test_all() {
     let source = "
         () [ ] { } ; , * / % + - ~ ! && || == != < <= > >= & | ^ << >> =
-        += -= /= *= %= <<= >>= &= |= ^= if else ? :";
+        += -= /= *= %= <<= >>= &= |= ^= if else ? : break continue for while do ifi";
 
     let expect = [
         TokenType::LParen,
@@ -106,6 +106,12 @@ fn test_all() {
         TokenType::Else,
         TokenType::Question,
         TokenType::Colon,
+        TokenType::Break,
+        TokenType::Continue,
+        TokenType::For,
+        TokenType::While,
+        TokenType::Do,
+        TokenType::Ident(Identifier { name: "ifi" }),
     ];
 
     check_tokens(source, &expect)

@@ -62,6 +62,11 @@ pub enum TokenType<'a> {
     Return,
     If,
     Else,
+    Break,
+    Continue,
+    For,
+    While,
+    Do,
 
     //
     Ident(Identifier<'a>),
