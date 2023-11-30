@@ -138,6 +138,8 @@ fn parse_stmt<'a, E: ParseError<ParserIn<'a>>>(
         ),
         map(parse_block, |block| ast::Stmt::Block(Box::new(block))),
         map(one(TokenType::Semicolon), |_| ast::Stmt::Nothing),
+        map(parse_while_loop, |stmt| ast::Stmt::While(Box::new(stmt))),
+        map(parse_do_while_loop, ast::Stmt::DoWhile),
     ))(source)
 }
 
@@ -183,6 +185,33 @@ fn parse_if_stmt<'a, E: ParseError<ParserIn<'a>>>(
                 alternative,
             },
         ),
+    )(source)
+}
+
+fn parse_while_loop<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::While, E> {
+    map(
+        tuple((
+            one(TokenType::While),
+            delimited(one(TokenType::LParen), parse_expr, one(TokenType::RParen)),
+            parse_stmt,
+        )),
+        |(_, cond, body)| ast::While { cond, body },
+    )(source)
+}
+
+fn parse_do_while_loop<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::DoWhile, E> {
+    map(
+        tuple((
+            one(TokenType::Do),
+            parse_block,
+            one(TokenType::While),
+            delimited(one(TokenType::LParen), parse_expr, one(TokenType::RParen)),
+        )),
+        |(_, body, _, cond)| ast::DoWhile { cond, body },
     )(source)
 }
 

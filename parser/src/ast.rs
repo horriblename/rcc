@@ -20,6 +20,8 @@ pub enum Stmt<'a> {
     If(Box<IfStmt<'a>>),
     Expr(Expr<'a>),
     Block(Box<Block<'a>>),
+    While(Box<While<'a>>),
+    DoWhile(DoWhile<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -54,6 +56,18 @@ pub struct Identifier<'a> {
 #[derive(Debug, PartialEq)]
 pub struct Block<'a> {
     pub body: Vec<Stmt<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct While<'a> {
+    pub cond: Expr<'a>,
+    pub body: Stmt<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DoWhile<'a> {
+    pub body: Block<'a>,
+    pub cond: Expr<'a>,
 }
 
 #[derive(Debug, PartialEq)]
