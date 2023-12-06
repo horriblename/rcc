@@ -301,11 +301,39 @@ fn parse_primary_expr<'a, E: ParseError<ParserIn<'a>>>(
     ))(source)
 }
 
+fn parse_postfix_expr<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::Expr, E> {
+    let (source, left) = parse_primary_expr(source)?;
+
+    match alt((parse_call_arg_list,))(source) {
+        Ok((source, right)) => Ok((
+            source,
+            ast::Expr::Postfix(Box::new(ast::PostfixExpr { left, right })),
+        )),
+        Err(nom::Err::Error(_)) => Ok((source, left)),
+        Err(failure) => Err(failure),
+    }
+}
+
+fn parse_call_arg_list<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::PostfixOp, E> {
+    map(
+        delimited(
+            one(TokenType::LParen),
+            separated_list0(one(TokenType::Comma), parse_assignment),
+            one(TokenType::RParen),
+        ),
+        ast::PostfixOp::Call,
+    )(source)
+}
+
 fn parse_unary<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::Expr, E> {
     alt((
-        parse_primary_expr,
+        parse_postfix_expr,
         map(tuple((one_unary_symbol, parse_unary)), |(symbol, expr)| {
             ast::Expr::Unary(Box::new(ast::UnaryExpr { symbol, expr }))
         }),

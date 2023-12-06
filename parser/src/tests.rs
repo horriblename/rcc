@@ -7,8 +7,8 @@ use nom::error::VerboseError;
 use crate::{
     ast::{
         self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, For, IfStmt,
-        InfixExpr, InfixSymbol, IntLiteral, Program, ReturnStmt, Stmt, TopLevel, UnaryExpr,
-        UnarySign, While,
+        InfixExpr, InfixSymbol, IntLiteral, PostfixOp, Program, ReturnStmt, Stmt, TopLevel,
+        UnaryExpr, UnarySign, While,
     },
     parse_expr, parse_program, ParserIn,
 };
@@ -269,6 +269,53 @@ fn test_parse_loop() {
 }
 
 #[test]
+fn test_parse_call() {
+    let prog = r#"
+        int main() {
+            f();
+            g(1);
+            h(1, a);
+        }
+        "#;
+
+    let (_, tokens) = lex_program(prog.into()).unwrap();
+
+    fn int<'a>(n: i32) -> Expr<'a> {
+        Expr::IntLit(IntLiteral { value: n })
+    }
+
+    let expect = Program {
+        children: {
+            vec![TopLevel::FnDef(FnDef {
+                return_type: ident_ast!("int"),
+                name: ident_ast!("main"),
+                args: vec![],
+                body: Block {
+                    body: vec![
+                        Stmt::Expr(Expr::Postfix(Box::new(ast::PostfixExpr {
+                            left: Expr::Ident(ident_ast!("f")),
+                            right: PostfixOp::Call(Vec::new()),
+                        }))),
+                        Stmt::Expr(Expr::Postfix(Box::new(ast::PostfixExpr {
+                            left: Expr::Ident(ident_ast!("g")),
+                            right: PostfixOp::Call(vec![int(1)]),
+                        }))),
+                        Stmt::Expr(Expr::Postfix(Box::new(ast::PostfixExpr {
+                            left: Expr::Ident(ident_ast!("h")),
+                            right: PostfixOp::Call(vec![int(1), Expr::Ident(ident_ast!("a"))]),
+                        }))),
+                    ],
+                },
+            })]
+        },
+    };
+
+    let (_, got) = parse_program::<VerboseError<ParserIn>>(&tokens).unwrap();
+
+    assert_eq!(got, expect);
+}
+
+#[test]
 fn test_op_precedence() {
     let x = "a = b = 1<8 | 11 || 4^3 > 2 ? a == 4 + 4*3 & 10 : 9 << 1 + 2 && 3 >= 4";
 
@@ -351,5 +398,6 @@ fn show_operator_precedence(expr: &ast::Expr) -> String {
             show_operator_precedence(&cond.succ),
             show_operator_precedence(&cond.fail),
         ),
+        Expr::Postfix(_) => todo!(),
     }
 }
