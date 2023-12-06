@@ -69,10 +69,13 @@ pub fn parse_program<'a, E: ParseError<ParserIn<'a>>>(
 fn parse_top_level<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::TopLevel<'a>, E> {
-    alt((map(parse_function, ast::TopLevel::FnDef),))(source)
+    alt((
+        map(parse_function_def, ast::TopLevel::FnDef),
+        map(parse_function_decl, ast::TopLevel::FnDecl),
+    ))(source)
 }
 
-fn parse_function<'a, E: ParseError<ParserIn<'a>>>(
+fn parse_function_def<'a, E: ParseError<ParserIn<'a>>>(
     source: ParserIn<'a>,
 ) -> ParserResult<'a, ast::FnDef<'a>, E> {
     map(
@@ -91,6 +94,28 @@ fn parse_function<'a, E: ParseError<ParserIn<'a>>>(
             name,
             args,
             body,
+        },
+    )(source)
+}
+
+fn parse_function_decl<'a, E: ParseError<ParserIn<'a>>>(
+    source: ParserIn<'a>,
+) -> ParserResult<'a, ast::FnDecl<'a>, E> {
+    map(
+        tuple((
+            parse_identifier,
+            parse_identifier,
+            delimited(
+                one(TokenType::LParen),
+                parse_arg_list,
+                one(TokenType::RParen),
+            ),
+            one(TokenType::Semicolon),
+        )),
+        |(return_type, name, args, _)| ast::FnDecl {
+            return_type,
+            name,
+            args,
         },
     )(source)
 }

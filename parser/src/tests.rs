@@ -6,8 +6,8 @@ use nom::error::VerboseError;
 
 use crate::{
     ast::{
-        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDef, For, IfStmt,
-        InfixExpr, InfixSymbol, IntLiteral, PostfixOp, Program, ReturnStmt, Stmt, TopLevel,
+        self, AssignSymbol, Assignment, Block, DeclarationStmt, Expr, FnArg, FnDecl, FnDef, For,
+        IfStmt, InfixExpr, InfixSymbol, IntLiteral, PostfixOp, Program, ReturnStmt, Stmt, TopLevel,
         UnaryExpr, UnarySign, While,
     },
     parse_expr, parse_program, ParserIn,
@@ -62,6 +62,7 @@ fn test_parse_program() {
     use AssignSymbol::*;
 
     let prog = r#"
+        void foo(int a, int b);
         int main(int argc, char argv) {
             int a;
             int b = ~!-100;
@@ -90,57 +91,73 @@ fn test_parse_program() {
 
     let expect = Program {
         children: {
-            vec![TopLevel::FnDef(FnDef {
-                return_type: ident_ast!("int"),
-                name: ident_ast!("main"),
-                args: vec![
-                    FnArg {
-                        type_: ident_ast!("int"),
-                        name: ident_ast!("argc"),
-                    },
-                    FnArg {
-                        type_: ident_ast!("char"),
-                        name: ident_ast!("argv"),
-                    },
-                ],
-                body: Block {
-                    body: vec![
-                        Stmt::Decl(DeclarationStmt {
+            vec![
+                TopLevel::FnDecl(FnDecl {
+                    return_type: ident_ast!("void"),
+                    name: ident_ast!("foo"),
+                    args: vec![
+                        FnArg {
                             type_: ident_ast!("int"),
                             name: ident_ast!("a"),
-                            initializer: None,
-                        }),
-                        Stmt::Decl(DeclarationStmt {
+                        },
+                        FnArg {
                             type_: ident_ast!("int"),
                             name: ident_ast!("b"),
-                            initializer: Some(op!(
-                                UnarySign::BitComplement,
-                                op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int(100)))
-                            )),
-                        }),
-                        Stmt::Expr(assign_expr(
-                            AssignSymbol::Equal,
-                            ident_ast!("c"),
-                            op!(UnarySign::Negate, int(1)),
-                        )),
-                        assign!(PlusEq, "a", int(1)),
-                        assign!(MinusEq, "a", int(1)),
-                        assign!(DivideEq, "a", int(1)),
-                        assign!(TimesEq, "a", int(1)),
-                        assign!(ModuloEq, "a", int(1)),
-                        assign!(ShiftLeftEq, "a", int(1)),
-                        assign!(ShiftRightEq, "a", int(1)),
-                        block_stmt![
-                            assign!(AndEq, "a", int(1)),
-                            assign!(OrEq, "a", int(1)),
-                            assign!(XorEq, "a", int(1))
-                        ],
-                        Stmt::Return(ReturnStmt {
-                            expr: Expr::Ident(ident_ast!("a")),
-                        }),
+                        },
                     ],
-                },
-            })]
+                }),
+                TopLevel::FnDef(FnDef {
+                    return_type: ident_ast!("int"),
+                    name: ident_ast!("main"),
+                    args: vec![
+                        FnArg {
+                            type_: ident_ast!("int"),
+                            name: ident_ast!("argc"),
+                        },
+                        FnArg {
+                            type_: ident_ast!("char"),
+                            name: ident_ast!("argv"),
+                        },
+                    ],
+                    body: Block {
+                        body: vec![
+                            Stmt::Decl(DeclarationStmt {
+                                type_: ident_ast!("int"),
+                                name: ident_ast!("a"),
+                                initializer: None,
+                            }),
+                            Stmt::Decl(DeclarationStmt {
+                                type_: ident_ast!("int"),
+                                name: ident_ast!("b"),
+                                initializer: Some(op!(
+                                    UnarySign::BitComplement,
+                                    op!(UnarySign::LogicNegate, op!(UnarySign::Negate, int(100)))
+                                )),
+                            }),
+                            Stmt::Expr(assign_expr(
+                                AssignSymbol::Equal,
+                                ident_ast!("c"),
+                                op!(UnarySign::Negate, int(1)),
+                            )),
+                            assign!(PlusEq, "a", int(1)),
+                            assign!(MinusEq, "a", int(1)),
+                            assign!(DivideEq, "a", int(1)),
+                            assign!(TimesEq, "a", int(1)),
+                            assign!(ModuloEq, "a", int(1)),
+                            assign!(ShiftLeftEq, "a", int(1)),
+                            assign!(ShiftRightEq, "a", int(1)),
+                            block_stmt![
+                                assign!(AndEq, "a", int(1)),
+                                assign!(OrEq, "a", int(1)),
+                                assign!(XorEq, "a", int(1))
+                            ],
+                            Stmt::Return(ReturnStmt {
+                                expr: Expr::Ident(ident_ast!("a")),
+                            }),
+                        ],
+                    },
+                }),
+            ]
         },
     };
 

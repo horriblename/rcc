@@ -9,6 +9,7 @@ pub struct Program<'a> {
 pub enum TopLevel<'a> {
     // FnDecl(FnDecl),
     FnDef(FnDef<'a>),
+    FnDecl(FnDecl<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -44,6 +45,13 @@ pub struct FnDef<'a> {
     pub name: Identifier<'a>,
     pub args: Vec<FnArg<'a>>,
     pub body: Block<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct FnDecl<'a> {
+    pub return_type: Identifier<'a>,
+    pub name: Identifier<'a>,
+    pub args: Vec<FnArg<'a>>,
 }
 
 #[derive(Debug, PartialEq)]
