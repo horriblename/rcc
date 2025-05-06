@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use parser::ast::{self, DeclarationStmt};
 
 use crate::scope::FnIndex;
@@ -32,15 +34,22 @@ fn write_label(out: &mut impl std::io::Write, label: &str) {
     writeln!(out, "{}:", label).unwrap();
 }
 
-struct ProgramState {
+struct TypeSignature<'a> {
+    return_type: &'a ast::Identifier<'a>,
+    args: Vec<&'a ast::Identifier<'a>>,
+    defined: bool,
+}
+
+struct ProgramState<'a> {
     unique_label_counter: u32,
     // global: Scope,
     scopes: Option<FnIndex>,
+    top_level_functions: HashMap<String, TypeSignature<'a>>,
     continue_target: Vec<String>,
     break_target: Vec<String>,
 }
 
-impl ProgramState {
+impl<'a> ProgramState<'a> {
     /// generates a unique label. A `tag` can be provided to make the label more easily
     /// distinguishable. if "" was given as the tag, the default: "label" is used
     fn gen_unique_label(&mut self, tag: &str) -> String {
@@ -54,13 +63,18 @@ pub fn codegen(program: &ast::Program, out: &mut impl std::io::Write) {
     let mut state = ProgramState {
         unique_label_counter: 0,
         scopes: None,
+        top_level_functions: HashMap::new(),
         continue_target: Vec::new(),
         break_target: Vec::new(),
     };
     codegen_(&mut state, program, out);
 }
 
-fn codegen_(state: &mut ProgramState, program: &ast::Program, out: &mut impl std::io::Write) {
+fn codegen_<'a>(
+    state: &mut ProgramState<'a>,
+    program: &'a ast::Program<'a>,
+    out: &mut impl std::io::Write,
+) {
     write_op!(out, ".section .rodata");
     writeln_!(out, ".LCO:");
     write_op!(out, ".text");
@@ -70,25 +84,68 @@ fn codegen_(state: &mut ProgramState, program: &ast::Program, out: &mut impl std
     for child in &program.children {
         match child {
             ast::TopLevel::FnDef(func) => gen_fn_def(state, func, out),
+            ast::TopLevel::FnDecl(decl) => {
+                let func = TypeSignature {
+                    return_type: &decl.return_type,
+                    args: decl.args.iter().map(|arg| &arg.type_).collect(),
+                    defined: false,
+                };
+                let prev_entry = state
+                    .top_level_functions
+                    .entry(decl.name.name.name.to_string());
+
+                prev_entry
+                    .and_modify(|_| panic!("function {} redeclared", decl.name.name.name))
+                    .or_insert(func);
+            }
         };
     }
 }
 
 fn gen_fn_def(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::io::Write) {
     state.scopes = Some(FnIndex::new());
-
     writeln_!(out, "{}:", fndef.name.name.name);
+
+    // TODO: arguments have separate scope than other vars, check if this is supposed to be the
+    // case.
+    state.scopes.as_mut().expect("TODO").add_scope();
+
+    for arg in fndef.args.iter() {
+        let result = state
+            .scopes
+            .as_mut()
+            .expect("TODO")
+            .declare_function_argument(arg.name.name.name.to_string(), 1);
+
+        match result {
+            Err(scope::Error::EmptyScopeStack) => unreachable!("this is a compiler bug"),
+            Err(scope::Error::VariableRedeclared) => {
+                panic!("variable redeclared: {}", arg.name.name.name)
+            }
+            Ok(_) => (),
+        };
+    }
+
+    if fndef.name.name.name == "main" {
+        gen_main(state, fndef, out);
+    } else {
+        gen_scoped_block(state, &fndef.body, out);
+    }
+
+    state.scopes.take();
+}
+
+// I'm still not sure how cdecl works, but this compiles so I'll leave it be
+fn gen_main(state: &mut ProgramState, fndef: &ast::FnDef, out: &mut impl std::io::Write) {
+    // FIXME: empty returns should be replaced with `return 0`
+
     // push old bp
     write_op!(out, "push %rbp");
     // update bp to old sp
     write_op!(out, "movq %rsp, %rbp");
     gen_scoped_block(state, &fndef.body, out);
 
-    write_op!(out, "movq %rbp, %rsp");
-    write_op!(out, "popq %rbp");
     write_op!(out, "ret");
-
-    state.scopes.take();
 }
 
 fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::Write) {
@@ -104,9 +161,10 @@ fn gen_stmt(state: &mut ProgramState, stmt: &ast::Stmt, out: &mut impl std::io::
                 .expect("TODO")
                 .declare(name.name.name.to_string(), 1)
             {
-                Err(scope::Error::EmptyScopeStack) => unreachable!("this is a bug"),
-                // TODO: better error message
-                Err(scope::Error::VariableRedeclared) => panic!("variable redeclared"),
+                Err(scope::Error::EmptyScopeStack) => unreachable!("this is a compiler bug"),
+                Err(scope::Error::VariableRedeclared) => {
+                    panic!("variable redeclared: {}", name.name.name)
+                }
                 Ok(_) => {
                     if let Some(expr) = initializer {
                         gen_expr(state, expr, out);
@@ -297,11 +355,18 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
                 .as_ref()
                 .expect("TODO")
                 .find_any(&var.name.name)
-                .expect("undeclared variable.");
+                .unwrap_or_else(|| panic!("undeclared variable: {}", &var.name.name));
+
+            let (sign, offset) = match info.offset {
+                scope::VarPosition::Arg(offset) => ("", offset),
+                scope::VarPosition::Var(offset) => ("-", offset),
+            };
+
             write_op!(
                 out,
-                "movq -0x{:x}(%rbp), %rax",
-                info.offset * WORD_SIZE_BYTES
+                "movq {}0x{:x}(%rbp), %rax",
+                sign,
+                offset * WORD_SIZE_BYTES
             );
         }
         ast::Expr::Infix(expr) => gen_infix_expr(state, expr, out),
@@ -309,6 +374,9 @@ fn gen_expr(state: &mut ProgramState, expr: &ast::Expr, out: &mut impl std::io::
         ast::Expr::IntLit(ast::IntLiteral { value }) => write_op!(out, "movq ${}, %rax", value),
         ast::Expr::Assign(expr) => gen_assignment(state, expr, out),
         ast::Expr::Conditional(expr) => gen_conditional(state, expr, out),
+        ast::Expr::Postfix(expr) => match &expr.right {
+            ast::PostfixOp::Call(args) => gen_function_call(state, &expr.left, args, out),
+        },
     }
 }
 
@@ -337,18 +405,56 @@ fn gen_conditional(
     write_label(out, &post_label);
 }
 
+fn gen_function_call(
+    state: &mut ProgramState,
+    func: &ast::Expr,
+    args: &[ast::Expr],
+    out: &mut impl std::io::Write,
+) {
+    tag_dbg(out, "call function");
+
+    for arg in args.iter().rev() {
+        gen_expr(state, arg, out);
+        write_op!(out, "push %rax");
+    }
+
+    // write_op!(out, "push %rbp"); // save old call frame
+    // write_op!(out, "movq %rsp, %rbp"); // init new call frame
+
+    let func_name = match func {
+        ast::Expr::Ident(ast::Identifier { name }) => name.name,
+        _ => todo!("calling a non-identifier?"),
+    };
+
+    write_op!(out, "call {}", func_name);
+
+    // TODO: assumes all vars are equal sized
+    let bytes_to_remove = WORD_SIZE_BYTES * args.len() as u64;
+    write_op!(out, "addq ${}, %rsp", bytes_to_remove);
+}
+
 fn gen_assignment(state: &mut ProgramState, expr: &ast::Assignment, out: &mut impl std::io::Write) {
     match expr.symbol {
         ast::AssignSymbol::Equal => {
-            let offset = state
+            let info = state
                 .scopes
                 .as_ref()
                 .expect("TODO")
                 .find_any(&expr.var.name.name)
-                .expect("undeclared variable.")
-                .offset;
+                .unwrap_or_else(|| panic!("undeclared variable: {}", &expr.var.name.name));
+
+            let (sign, offset) = match info.offset {
+                scope::VarPosition::Arg(offset) => ("", offset),
+                scope::VarPosition::Var(offset) => ("-", offset),
+            };
+
             gen_expr(state, &expr.value, out);
-            write_op!(out, "movq %rax, -0x{:x}(%rbp)", offset * WORD_SIZE_BYTES);
+            write_op!(
+                out,
+                "movq %rax, {}0x{:x}(%rbp)",
+                sign,
+                offset * WORD_SIZE_BYTES
+            );
         }
         _ => todo!(),
     }
@@ -381,6 +487,8 @@ fn gen_unary_expr(state: &mut ProgramState, expr: &ast::UnaryExpr, out: &mut imp
 fn gen_infix_expr(state: &mut ProgramState, expr: &ast::InfixExpr, out: &mut impl std::io::Write) {
     gen_expr(state, &expr.left, out);
 
+    // FIXME: me dumb. the statement below is false, declarations are expressions so I (think) I
+    // need to rewrite this function
     // NOTE: (stack) allocations can only happen in declarations, so we can push/pop within an
     // expression without worrying about our internal stack index going out of date (any push must
     // be followed with a pop though)
